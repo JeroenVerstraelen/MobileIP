@@ -9,4 +9,4 @@ struct ICMPAdvertisement{
     uint16_t lifetime;
     uint32_t routerAddress;
     uint32_t preferenceLevel;
-}
+};
