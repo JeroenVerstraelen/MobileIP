@@ -14,14 +14,15 @@ elementclass Agent {
 	$private_address, $public_address, $gateway |
 
 	// RegistrationHandler must come here somewhere it can handle incoming request and send the replies to the correct interface
-	
+
 	// Advertisement part of the Agent
-	advertiser :: Advertiser(ROUTERADDRESS $private_address, COA $public_address)
-	advertiser[0] 
-		-> EtherEncap(0x0800, SRC $private_address, DST ff:ff:ff:ff:ff:ff) 
+	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address)
+	advertiser[0]
+		-> Print(ADV)
+		-> EtherEncap(0x0800, SRC $private_address, DST ff:ff:ff:ff:ff:ff)
 		-> [0]output;
 
-	
+
 	// Shared IP input path and routing table
 	ip :: Strip(14)
 		-> CheckIPHeader

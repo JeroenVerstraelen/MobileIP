@@ -16,7 +16,7 @@ class Advertiser : public Element {
 		const char *port_count() const	{ return "1/1"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
-		
+
 		void run_timer(Timer* t);
 
 	private:
@@ -24,8 +24,8 @@ class Advertiser : public Element {
 		void _generateAdvertisement();
 
 		// Private attributes
-		IPAddress _routerAddress;
-		IPAddress _careOfAddress;
+		IPAddress _routerAddressPrivate; // The private router address
+		IPAddress _routerAddressPublic;
 		unsigned int _advertisementCounter;
 		Timer _advertisementTimer;
 

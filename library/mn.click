@@ -15,6 +15,9 @@
 elementclass MobileNode {
 	$address, $gateway, $home_agent |
 
+	solicitationGenerator :: Solicitor(SRC $address);
+	solicitationGenerator -> EtherEncap(0x0800, SRC $address, DST ff:ff:ff:ff:ff:ff) -> [0]output;
+
 	// Shared IP input path
 	ip :: Strip(14)
 		-> CheckIPHeader

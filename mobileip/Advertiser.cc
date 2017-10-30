@@ -8,6 +8,8 @@
 #include "Advertiser.hh"
 #include "structs/ICMPAdvertisement.hh"
 #include "structs/MobilityAgentAdvertisementExtension.hh"
+#include "utils/Configurables.hh"
+#include "utils/HelperFunctions.hh"
 
 CLICK_DECLS
 Advertiser::Advertiser(): _advertisementCounter(0), _advertisementTimer(this){}
@@ -15,8 +17,8 @@ Advertiser::Advertiser(): _advertisementCounter(0), _advertisementTimer(this){}
 Advertiser::~ Advertiser(){}
 
 int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "ROUTERADDRESS", cpkM, cpIPAddress, &_routerAddress, \
-	"COA", cpkM, cpIPAddress, &_careOfAddress, cpEnd) < 0){
+	if (cp_va_kparse(conf, this, errh, "PRIVATE", cpkM, cpIPAddress, &_routerAddressPrivate, \
+	"PUBLIC", cpkM, cpIPAddress, &_routerAddressPublic, cpEnd) < 0){
 			return -1;
 	}
 	_advertisementTimer.initialize(this);
@@ -27,7 +29,7 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 void Advertiser::run_timer(Timer* t){
 	if (t == &_advertisementTimer){
 		_generateAdvertisement();
-		t->clear();
+		t->reschedule_after_msec((advertisementLifetimeICMP/3)*1000); // TODO add slightly randomization here see rfc 1256
 	}
 }
 
@@ -42,14 +44,14 @@ void Advertiser::_generateAdvertisement() {
 	// IP header
 	click_ip *iph = (click_ip *) packet->data();
 	iph->ip_v = 4;
-  	iph->ip_hl = sizeof(click_ip) >> 2;
+  iph->ip_hl = sizeof(click_ip) >> 2;
 	iph->ip_len = htons(packet->length());
 	iph->ip_id = htons(0);
-  	iph->ip_p = 1;
+  iph->ip_p = 1;
 	iph->ip_tos = 0x00;
-  	iph->ip_ttl = 1;
+  iph->ip_ttl = 1;
 	iph->ip_dst = IPAddress("255.255.255.255").in_addr();
-	iph->ip_src = _routerAddress.in_addr();
+	iph->ip_src = _routerAddressPrivate.in_addr();
 	iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
 
 	// ICMP advertisement related part
@@ -59,17 +61,17 @@ void Advertiser::_generateAdvertisement() {
 	advertisement->checksum = 0x0;
 	advertisement->numAddrs = 1;
 	advertisement->addrEntrySize = 2;
-	advertisement->lifetime = htons(45); //TODO
-	advertisement->routerAddress = _routerAddress.addr();
+	advertisement->lifetime = htons(advertisementLifetimeICMP);
+	advertisement->routerAddress = _routerAddressPublic.addr();
 	advertisement->preferenceLevel = htonl(0x1);
-	
+
 	// Mobility agent advertisement extension
 	MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension*) (packet->data() + sizeof(click_ip) + sizeof(ICMPAdvertisement));
 	extension->type = 16;
 	extension->length = 6+(4*1); 	// TODO maybe add variable N value here, N = 1 momentarily
 	extension->sequenceNumber = htons(_advertisementCounter);
 	_advertisementCounter++;	// Keep track of amount of advertisements were sent
-	extension->registrationLifetime = htons(30);	// TODO maybe change value
+	extension->registrationLifetime = htons(registrationLifetime);
 	extension->R = 1;
 	extension->B = 0;
 	extension->H = 1;
@@ -82,7 +84,7 @@ void Advertiser::_generateAdvertisement() {
 	extension->X = 0;
 	extension->I = 0;
 	extension->reserved = 0;
-	extension->careOfAddress = _careOfAddress.addr();
+	extension->careOfAddress = _routerAddressPublic.addr();
 
 		// Checksum
 	advertisement->checksum = click_in_cksum((unsigned char *) advertisement, sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension));
