@@ -1,4 +1,4 @@
-// This struct will contain the struct for the MobilityAgentAdvertisementExtension
+// This file contains the struct for the Mobility Agent Advertisement Extension (MAAE)
 // This extension is added to the ICMP router advertisement message
 struct MobilityAgentAdvertisementExtension{
 	uint8_t type;
@@ -13,7 +13,7 @@ struct MobilityAgentAdvertisementExtension{
 	unsigned H:1;
 	unsigned B:1;
 	unsigned R:1;
-	unsigned reserved:5;// TODO check this
+	unsigned reserved:5;
 	unsigned I:1;
 	unsigned X:1;
 	unsigned U:1;
