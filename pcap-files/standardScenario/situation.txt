@@ -1,0 +1,5 @@
+this folder contain the PCAP files for the standard scenario:
+
+	Agents just advertise their presence through advertisements
+	Mobile node sends router solicitations periodically
+	Mobile node is at home 

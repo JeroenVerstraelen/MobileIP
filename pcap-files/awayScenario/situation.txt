@@ -1,0 +1,5 @@
+this folder contains the PCAP files for the away scenario:
+
+	MN was first @ home
+	MN transferred to other network using ./to_foreign.sh script
+	MN stays foreign

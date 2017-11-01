@@ -22,7 +22,7 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
 	_advertisementTimer.initialize(this);
-	_advertisementTimer.schedule_now();
+	_advertisementTimer.schedule_after_msec(1);
 	return 0;
 }
 
