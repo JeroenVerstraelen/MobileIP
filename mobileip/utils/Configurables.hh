@@ -1,7 +1,10 @@
 // This file will contain some configurable values for the project
 
 // ICMP related configurables
-unsigned int advertisementLifetimeICMP = 45; // seconds
+const unsigned int advertisementLifetimeICMP = 45; // seconds
 
 // Extension related configurables
-unsigned int registrationLifetime = 30; // seconds
+const unsigned int registrationLifetime = 30; // seconds
+
+// Requests related configurables
+const unsigned int requestLifetime = 60; // seconds

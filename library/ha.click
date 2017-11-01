@@ -31,9 +31,7 @@ elementclass Agent {
 					$public_address:ip/32 0,
 					$private_address:ipnet 1,
 					$public_address:ipnet 2,
-					0.0.0.0/0 $gateway 2,
-					192.1.1.1 3);
-	rt[3] -> [0]advertiser;
+					0.0.0.0/0 $gateway 2);
 
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (2);

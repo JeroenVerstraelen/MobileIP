@@ -15,8 +15,14 @@
 elementclass MobileNode {
 	$address, $gateway, $home_agent |
 
+	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
 	solicitationGenerator -> EtherEncap(0x0800, SRC $address, DST ff:ff:ff:ff:ff:ff) -> [0]output;
+
+	// Generates registration requests and send them 
+	// TODO maybe also handle incoming replies here OR provide a new global element that coordinates the MN?
+	requestGenerator :: RequestGenerator(SRC $address, HA $home_agent);
+ 	requestGenerator -> EtherEncap(0x0800, SRC $address, DST $gateway) -> [0]output; //TODO verify ethernet DST
 
 	// Shared IP input path
 	ip :: Strip(14)
