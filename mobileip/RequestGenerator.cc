@@ -21,7 +21,7 @@ int RequestGenerator::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
 	_timer.initialize(this);
-	//_timer.schedule_after_msec(10000);
+	_timer.schedule_after_msec(5000);
 	return 0;
 }
 
@@ -32,7 +32,7 @@ void RequestGenerator::run_timer(Timer* t){
 void RequestGenerator::_generateRequest(){
   click_chatter("Request message");
 	int tailroom = 0;
-	int headroom = sizeof(click_ether);
+	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationRequest);
 	WritablePacket* packet = Packet::make(headroom, 0, packetsize, tailroom);
 	memset(packet->data(), 0, packet->length());

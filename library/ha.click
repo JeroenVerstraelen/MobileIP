@@ -13,10 +13,13 @@
 elementclass Agent {
 	$private_address, $public_address, $gateway |
 
-	// RegistrationHandler must come here somewhere it can handle incoming request and send the replies to the correct interface
+	messageHandler :: MessageHandler(PUBLIC $public_address);
+	messageHandler[0]
+		-> EtherEncap(0x0800, SRC $private_address, DST 00:00:00:00:00:00) //TODO change ethernet destination address 
+		-> [0]output;
 
 	// Advertisement part of the Agent
-	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address)
+	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address);
 	advertiser[0]
 		-> Print(ADV)
 		-> EtherEncap(0x0800, SRC $private_address, DST ff:ff:ff:ff:ff:ff)
@@ -31,7 +34,9 @@ elementclass Agent {
 					$public_address:ip/32 0,
 					$private_address:ipnet 1,
 					$public_address:ipnet 2,
-					0.0.0.0/0 $gateway 2);
+					0.0.0.0/0 $gateway 2,
+					255.255.255.255 3);
+	
 
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (2);
@@ -74,6 +79,7 @@ elementclass Agent {
 
 	// Local delivery
 	rt[0]
+		-> [1]messageHandler[1]
 		-> [2]output
 
 	// Forwarding paths per interface
@@ -111,6 +117,10 @@ elementclass Agent {
 		-> public_ttl :: DecIPTTL
 		-> public_frag :: IPFragmenter(1500)
 		-> public_arpq;
+
+	// Handle incoming messages with DST 255.255.255.255
+	rt[3]
+		-> [0]messageHandler;
 
 	public_paint[1]
 		-> ICMPError($public_address, redirect, host)

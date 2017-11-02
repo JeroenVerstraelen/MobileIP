@@ -17,7 +17,7 @@ elementclass MobileNode {
 
 	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
-	solicitationGenerator -> EtherEncap(0x0800, SRC $address, DST ff:ff:ff:ff:ff:ff) -> [0]output;
+	solicitationGenerator -> EtherEncap(0x0800, SRC $address, DST ff:ff:ff:ff:ff:ff) -> output;
 
 	// Generates registration requests and send them 
 	// TODO maybe also handle incoming replies here OR provide a new global element that coordinates the MN?

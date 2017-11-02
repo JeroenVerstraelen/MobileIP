@@ -18,7 +18,7 @@ int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
   _solicitationTimer.initialize(this);
-  _solicitationTimer.schedule_after_sec(5);
+  _solicitationTimer.schedule_after_sec(3);
 	return 0;
 }
 
@@ -29,7 +29,7 @@ void Solicitor::run_timer(Timer* t){
 void Solicitor::_generateSolicitation() {
 	click_chatter("Router solicitation");
 	int tailroom = 0;
-	int headroom = sizeof(click_ether);
+	int headroom = sizeof(click_ether) + 4; // TODO check why necessary to add 4
 	int packetsize = sizeof(click_ip) + sizeof(ICMPSolicitation);
 	WritablePacket* packet = Packet::make(headroom, 0, packetsize, tailroom);
 	memset(packet->data(), 0, packet->length());
