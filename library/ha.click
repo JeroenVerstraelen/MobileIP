@@ -13,8 +13,8 @@
 elementclass Agent {
 	$private_address, $public_address, $gateway |
 
-	messageHandler :: MessageHandler(PUBLIC $public_address);
-	messageHandler[0]
+	routingElement :: RoutingElement(PUBLIC $public_address);
+	routingElement[0]
 		-> EtherEncap(0x0800, SRC $private_address, DST 00:00:00:00:00:00) //TODO change ethernet destination address 
 		-> [0]output;
 
@@ -79,7 +79,7 @@ elementclass Agent {
 
 	// Local delivery
 	rt[0]
-		-> [1]messageHandler[1]
+		-> [1]routingElement[1]
 		-> [2]output
 
 	// Forwarding paths per interface
@@ -120,7 +120,7 @@ elementclass Agent {
 
 	// Handle incoming messages with DST 255.255.255.255
 	rt[3]
-		-> [0]messageHandler;
+		-> [0]routingElement;
 
 	public_paint[1]
 		-> ICMPError($public_address, redirect, host)

@@ -6,24 +6,24 @@
 #include <clicknet/ip.h>
 
 // Local imports
-#include "MessageHandler.hh"
+#include "RoutingElement.hh"
 #include "structs/ICMPSolicitation.hh"
 #include "structs/RegistrationRequest.hh"
 #include "structs/RegistrationReply.hh"
 
 CLICK_DECLS
-MessageHandler::MessageHandler(){}
+RoutingElement::RoutingElement(){}
 
-MessageHandler::~ MessageHandler(){}
+RoutingElement::~ RoutingElement(){}
 
-int MessageHandler::configure(Vector<String> &conf, ErrorHandler *errh) {
+int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 	if (cp_va_kparse(conf, this, errh, "PUBLIC", cpkM, cpIPAddress, &_agentAddressPublic, cpEnd) < 0){
 			return -1;
 	}
 	return 0;
 }
 
-void MessageHandler::push(int, Packet* p){
+void RoutingElement::push(int, Packet* p){
 	click_chatter("Received a message at the agent side, packet length = %d", p->length());
 	const click_ip* iph = p->ip_header();
 	IPAddress srcIP = iph->ip_src;
@@ -72,4 +72,4 @@ void MessageHandler::push(int, Packet* p){
 }
 
 CLICK_ENDDECLS
-EXPORT_ELEMENT(MessageHandler)
+EXPORT_ELEMENT(RoutingElement)

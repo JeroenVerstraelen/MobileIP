@@ -21,12 +21,15 @@ int RequestGenerator::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
 	_timer.initialize(this);
-	_timer.schedule_after_msec(5000);
 	return 0;
 }
 
 void RequestGenerator::run_timer(Timer* t){
-	_generateRequest();
+	// Update the remainingLifetime fields in the pendingRegistrationsData vector
+	if (t == &_timer){
+		_updateRemainingLifetime();
+		_timer.reschedule_after_sec(1);
+	}
 }
 
 void RequestGenerator::_generateRequest(){
@@ -77,7 +80,32 @@ void RequestGenerator::_generateRequest(){
 	// Set the UDP header checksum based on the initialized values
 	unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));
 	udpHeader->uh_sum = click_in_cksum_pseudohdr(csum, iph, sizeof(click_udp) + sizeof(RegistrationRequest));
+
+	// MN needs to maintain the following data for each pending registration
+	RegistrationData data;
+	data.linkLayerAddress = 0; // TODO maybe change this?
+	data.destinationIPAddress = ntohl(IPAddress(iph->ip_dst).addr());
+	data.careOfAddress = ntohl(request->careOfAddress);
+	data.identification = request->identification;
+	data.originalLifetime = ntohs(request->lifetime);
+	data.remainingLifetime = ntohs(request->lifetime);
+	_pendingRegistrationsData.push_back(data);
+
+	// If timer not yet scheduled ==> schedule it
+	// Request is sent so keep remainingLifetime up to date
+	if (!_timer.scheduled()){ _timer.schedule_after_sec(1);}
+
+	// Push the packet to the private network
 	output(0).push(packet);
 }
+
+void RequestGenerator::_updateRemainingLifetime(){
+	for (int it=0; it<_pendingRegistrationsData.size(); it++){
+		click_chatter("Lifetime before %d", _pendingRegistrationsData.at(it).remainingLifetime);
+		_pendingRegistrationsData.at(it).remainingLifetime--; // Decrement remainingLifetime
+		click_chatter("Lifetime after %d", _pendingRegistrationsData.at(it).remainingLifetime);
+	}
+}
+
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RequestGenerator)

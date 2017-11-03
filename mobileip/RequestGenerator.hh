@@ -2,6 +2,10 @@
 #define CLICK_REQUESTGENERATOR_HH
 #include <click/element.hh>
 #include <click/timer.hh>
+
+// Local imports
+#include "structs/RegistrationData.hh"
+
 CLICK_DECLS
 
 /*
@@ -29,15 +33,22 @@ class RequestGenerator : public Element {
 		// IP address of the mobile node's home agent
 		IPAddress _homeAgent;
 
-		// TODO delete this?
+		// Timer to keep the registration data up to date
 		Timer _timer;
+
+		// Vector of datastructs with information about the pending registrations
+		Vector<RegistrationData> _pendingRegistrationsData;
 
     // Vector of potential agents
     // The generator will use the first IP address of the vector as destination address of its request message
-    Vector<IPAddress> potentialAgents;
+    Vector<IPAddress> _potentialAgents;
 
+		// Private methods
     // Generate a registration request and push it to output 0
     void _generateRequest();
+
+		// Update the remainingLifetime field of each elemenet in the pendingRegistrationsData vector
+		void _updateRemainingLifetime();
 };
 
 CLICK_ENDDECLS
