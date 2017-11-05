@@ -23,7 +23,12 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 	return 0;
 }
 
-void RoutingElement::push(int, Packet* p){
+void RoutingElement::push(int port, Packet* p){
+	// Don't manipulate the packet coming from the CN
+	if (port == 1){
+		output(0).push(p);
+		return;
+	}
 	click_chatter("Received a message at the agent side, packet length = %d", p->length());
 	const click_ip* iph = p->ip_header();
 	IPAddress srcIP = iph->ip_src;
@@ -69,6 +74,7 @@ void RoutingElement::push(int, Packet* p){
 		}
 
 	}
+
 }
 
 CLICK_ENDDECLS

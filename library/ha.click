@@ -13,18 +13,11 @@
 elementclass Agent {
 	$private_address, $public_address, $gateway |
 
+	// This element will deal with incoming messages with DST 255.255.255.255, relaying messages etc.
 	routingElement :: RoutingElement(PUBLIC $public_address);
-	routingElement[0]
-		-> EtherEncap(0x0800, SRC $private_address, DST 00:00:00:00:00:00) //TODO change ethernet destination address 
-		-> [0]output;
 
 	// Advertisement part of the Agent
 	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address);
-	advertiser[0]
-		-> Print(ADV)
-		-> EtherEncap(0x0800, SRC $private_address, DST ff:ff:ff:ff:ff:ff)
-		-> [0]output;
-
 
 	// Shared IP input path and routing table
 	ip :: Strip(14)
@@ -32,10 +25,10 @@ elementclass Agent {
 		-> rt :: StaticIPLookup(
 					$private_address:ip/32 0,
 					$public_address:ip/32 0,
+					255.255.255.255 0,
 					$private_address:ipnet 1,
 					$public_address:ipnet 2,
-					0.0.0.0/0 $gateway 2,
-					255.255.255.255 3);
+					0.0.0.0/0 $gateway 2);
 	
 
 	// ARP responses are copied to each ARPQuerier and the host.
@@ -79,8 +72,8 @@ elementclass Agent {
 
 	// Local delivery
 	rt[0]
-		-> [1]routingElement[1]
-		-> [2]output
+		-> [0]routingElement[2]
+		-> [2]output;
 
 	// Forwarding paths per interface
 	rt[1]
@@ -90,7 +83,8 @@ elementclass Agent {
 		-> FixIPSrc($private_address)
 		-> private_ttl :: DecIPTTL
 		-> private_frag :: IPFragmenter(1500)
-		-> private_arpq;
+		-> [1]routingElement;
+		// TODO check this-> private_arpq;
 
 	private_paint[1]
 		-> ICMPError($private_address, redirect, host)
@@ -118,10 +112,6 @@ elementclass Agent {
 		-> public_frag :: IPFragmenter(1500)
 		-> public_arpq;
 
-	// Handle incoming messages with DST 255.255.255.255
-	rt[3]
-		-> [0]routingElement;
-
 	public_paint[1]
 		-> ICMPError($public_address, redirect, host)
 		-> rt;
@@ -137,4 +127,12 @@ elementclass Agent {
 	public_frag[1]
 		-> ICMPError($public_address, unreachable, needfrag)
 		-> rt;
+
+	// Packets with destination on the private network
+	routingElement[0] -> private_arpq;
+	advertiser[0] -> private_arpq;
+
+	// Packets with destination on the public network
+	routingElement[1] -> public_arpq; // TODO handle IP in IP encapsulation here
+	
 }

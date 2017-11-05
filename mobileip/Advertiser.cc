@@ -22,7 +22,7 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
 	_advertisementTimer.initialize(this);
-	_advertisementTimer.schedule_after_msec(1);
+	_advertisementTimer.schedule_now();
 	return 0;
 }
 
@@ -53,6 +53,7 @@ void Advertiser::_generateAdvertisement() {
 	iph->ip_dst = IPAddress("255.255.255.255").in_addr();
 	iph->ip_src = _routerAddressPrivate.in_addr();
 	iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
+	packet->set_dst_ip_anno(IPAddress("255.255.255.255"));
 
 	// ICMP advertisement related part
 	ICMPAdvertisement* advertisement = (ICMPAdvertisement*) (packet->data() + sizeof(click_ip));

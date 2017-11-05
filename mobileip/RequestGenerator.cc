@@ -52,6 +52,7 @@ void RequestGenerator::_generateRequest(){
   iph->ip_dst = IPAddress("192.168.3.254").in_addr(); // TODO use IP address found in potential agent vector here
   iph->ip_src = _srcAddress.in_addr();
   iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
+	packet->set_dst_ip_anno(IPAddress(iph->ip_dst));
 
   // UDP header
   click_udp *udpHeader = (click_udp *) (packet->data() + sizeof(click_ip));

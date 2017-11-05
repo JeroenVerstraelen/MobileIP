@@ -17,11 +17,9 @@ elementclass MobileNode {
 
 	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
-	solicitationGenerator -> EtherEncap(0x0800, SRC $address, DST ff:ff:ff:ff:ff:ff) -> output;
 
 	// Generates registration requests and send them 
 	requestGenerator :: RequestGenerator(SRC $address, HA $home_agent);
- 	requestGenerator -> EtherEncap(0x0800, SRC $address, DST $gateway) -> [0]output; //TODO verify ethernet DST
 
 	// Monitors registration replies and ICMP advertisements, and initiates proper replies for them
 	monitor :: Monitor();
@@ -62,4 +60,10 @@ elementclass MobileNode {
 
 	in_cl[2]
 		-> ip;
+
+	// Send the solicitations to the output
+	solicitationGenerator -> arpq;
+
+	// Send requests to the output
+	requestGenerator -> arpq;
 }
