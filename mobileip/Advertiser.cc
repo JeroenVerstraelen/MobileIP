@@ -36,7 +36,7 @@ void Advertiser::run_timer(Timer* t){
 void Advertiser::_generateAdvertisement() {
 	click_chatter("Router advertisement");
 	int tailroom = 0;
-	int headroom = sizeof(click_ether);
+	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension);
 	WritablePacket* packet = Packet::make(headroom, 0, packetsize, tailroom);
 	memset(packet->data(), 0, packet->length());
