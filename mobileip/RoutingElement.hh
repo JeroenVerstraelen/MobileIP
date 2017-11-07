@@ -29,6 +29,9 @@ class RoutingElement : public Element {
 	private:
 		// IPAddress of the agent
 		IPAddress _agentAddressPublic;
+
+		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
+		void _encapIPinIP(Packet* p);
 };
 
 CLICK_ENDDECLS

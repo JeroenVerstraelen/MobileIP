@@ -26,7 +26,14 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 void RoutingElement::push(int port, Packet* p){
 	// Don't manipulate the packet coming from the CN
 	if (port == 1){
+		// If MN is @ home just push it to the local network
 		output(0).push(p);
+		// If MN is away IP in IP encapsulate and send it to the public network
+		// TODO fix this with not a boolean value
+		bool away = false;
+		if (away){
+			_encapIPinIP(p);
+		}
 		return;
 	}
 	click_chatter("Received a message at the agent side, packet length = %d", p->length());
@@ -75,6 +82,24 @@ void RoutingElement::push(int port, Packet* p){
 
 	}
 
+}
+
+void RoutingElement::_encapIPinIP(Packet* p){
+	const click_ip* innerIP = p->ip_header(); //TODO check if TTL is decreased by the DecTTL @ ha.click
+	WritablePacket* newPacket = p->push(sizeof(click_ip)); // Create new packet with place for outer IP header
+	click_ip* outerIP;
+	outerIP->ip_v = 4;
+	outerIP->ip_hl = sizeof(click_ip) >> 2;
+	outerIP->ip_p = 4;
+	outerIP->ip_tos = innerIP->ip_tos;
+	outerIP->ip_len = htons(newPacket->length());
+	outerIP->ip_ttl = 10; // TODO change this possibly
+	outerIP->ip_src = _agentAddressPublic.in_addr();
+	outerIP->ip_dst = IPAddress("192.168.3.254").in_addr(); // TODO not hardcoded
+	outerIP->ip_sum = click_in_cksum((unsigned char *)outerIP, sizeof(click_ip));
+	newPacket->set_dst_ip_anno(IPAddress(outerIP->ip_dst));
+	newPacket->set_ip_header(outerIP, sizeof(click_ip));
+	output(1).push(newPacket);
 }
 
 CLICK_ENDDECLS
