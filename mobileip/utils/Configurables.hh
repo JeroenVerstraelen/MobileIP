@@ -2,6 +2,7 @@
 
 // ICMP related configurables
 const unsigned int advertisementLifetimeICMP = 45; // seconds
+const unsigned int maxResponseDelay = 2; // max number of seconds that a router can wait before sending a response to a solicitation
 
 // Extension related configurables
 const unsigned int registrationLifetime = 30; // seconds

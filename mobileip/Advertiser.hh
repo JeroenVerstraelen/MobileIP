@@ -16,8 +16,11 @@ class Advertiser : public Element {
 		const char *port_count() const	{ return "0/1"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
-
+		int initialize(ErrorHandler *);
 		void run_timer(Timer* t);
+
+		// This method is called by the RoutingElement when the agent received a solicitation
+		void respondToSolicitation();
 
 	private:
 		// Private methods

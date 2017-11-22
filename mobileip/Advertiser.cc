@@ -21,9 +21,13 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 	"PUBLIC", cpkM, cpIPAddress, &_routerAddressPublic, cpEnd) < 0){
 			return -1;
 	}
-	_advertisementTimer.initialize(this);
-	_advertisementTimer.schedule_now();
 	return 0;
+}
+
+int Advertiser::initialize(ErrorHandler *) {
+    _advertisementTimer.initialize(this);   					// Initialize timer object
+    _advertisementTimer.schedule_after_msec(500);    // Set the timer to fire after configuration is done (1 second)
+    return 0;
 }
 
 void Advertiser::run_timer(Timer* t){
@@ -31,6 +35,14 @@ void Advertiser::run_timer(Timer* t){
 		_generateAdvertisement();
 		t->reschedule_after_msec((advertisementLifetimeICMP/3)*1000); // TODO add slightly randomization here see rfc 1256
 	}
+}
+
+void Advertiser::respondToSolicitation(){
+	click_chatter("Responding to solicitation");
+	_advertisementTimer.clear();
+	unsigned int delay = generateRandomNumber(0, maxResponseDelay*1000);
+	click_chatter("Delay is %d", delay);
+	_advertisementTimer.reschedule_after_msec(delay);
 }
 
 void Advertiser::_generateAdvertisement() {
@@ -46,7 +58,7 @@ void Advertiser::_generateAdvertisement() {
 	iph->ip_v = 4;
   iph->ip_hl = sizeof(click_ip) >> 2;
 	iph->ip_len = htons(packet->length());
-	iph->ip_id = htons(0);
+	iph->ip_id = htons(_advertisementCounter);
   iph->ip_p = 1;
 	iph->ip_tos = 0x00;
   iph->ip_ttl = 1;

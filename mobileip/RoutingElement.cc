@@ -17,7 +17,7 @@ RoutingElement::RoutingElement(){}
 RoutingElement::~ RoutingElement(){}
 
 int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "PUBLIC", cpkM, cpIPAddress, &_agentAddressPublic, cpEnd) < 0){
+	if (cp_va_kparse(conf, this, errh, "PUBLIC", cpkM, cpIPAddress, &_agentAddressPublic, "ADVERTISER", cpkM, (Advertiser*) cpElement, &_advertiser, cpEnd) < 0){
 			return -1;
 	}
 	return 0;
@@ -26,13 +26,15 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 void RoutingElement::push(int port, Packet* p){
 	// Don't manipulate the packet coming from the CN
 	if (port == 1){
-		// If MN is @ home just push it to the local network
-		output(0).push(p);
-		// If MN is away IP in IP encapsulate and send it to the public network
 		// TODO fix this with not a boolean value
-		bool away = false;
-		if (away){
+		bool atHome = true;
+		if (atHome) {
+			// If MN is @ home just push it to the local network
+			output(0).push(p);
+		} else {
+			// If MN is away IP in IP encapsulate and send it to the public network
 			_encapIPinIP(p);
+			output(1).push(p);
 		}
 		return;
 	}
@@ -51,6 +53,7 @@ void RoutingElement::push(int port, Packet* p){
 		if (solicitation->type == 10){
 			click_chatter("Received a solicitation @ agent side");
 			// TODO handle solicitation message accordingly
+			_advertiser->respondToSolicitation();
 		}
 	}
 

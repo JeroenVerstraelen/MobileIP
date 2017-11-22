@@ -18,7 +18,7 @@ elementclass MobileNode {
 	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
 
-	// Generates registration requests and send them 
+	// Generates registration requests and send them
 	requestGenerator :: RequestGenerator(SRC $address, HA $home_agent);
 
 	// Monitors registration replies and ICMP advertisements, and initiates proper replies for them
@@ -29,6 +29,7 @@ elementclass MobileNode {
 		-> CheckIPHeader
 		-> rt :: LinearIPLookup(
 			$address:ip/32 0,
+			255.255.255.255 0,
 			$address:ipnet 1,
 			0.0.0.0/0 $gateway 1)
 		-> monitor -> [1]output;

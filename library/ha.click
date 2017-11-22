@@ -13,11 +13,11 @@
 elementclass Agent {
 	$private_address, $public_address, $gateway |
 
-	// This element will deal with incoming messages with DST 255.255.255.255, relaying messages etc.
-	routingElement :: RoutingElement(PUBLIC $public_address);
-
 	// Advertisement part of the Agent
 	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address);
+
+	// This element will deal with incoming messages with DST 255.255.255.255, relaying messages etc.
+	routingElement :: RoutingElement(PUBLIC $public_address, ADVERTISER advertiser);
 
 	// Shared IP input path and routing table
 	ip :: Strip(14)
@@ -29,7 +29,7 @@ elementclass Agent {
 					$private_address:ipnet 1,
 					$public_address:ipnet 2,
 					0.0.0.0/0 $gateway 2);
-	
+
 
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (2);
@@ -134,5 +134,5 @@ elementclass Agent {
 
 	// Packets with destination on the public network
 	routingElement[1] -> public_arpq; // TODO handle IP in IP encapsulation here
-	
+
 }

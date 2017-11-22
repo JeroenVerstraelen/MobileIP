@@ -1,8 +1,11 @@
 #ifndef CLICK_ROUTINGELEMENT_HH
 #define CLICK_ROUTINGELEMENT_HH
 #include <click/element.hh>
-CLICK_DECLS
 
+// Local imports
+#include "Advertiser.hh"
+
+CLICK_DECLS
 /*
  *	Click element that will:
  *	- function like a routing element for the agent
@@ -32,6 +35,9 @@ class RoutingElement : public Element {
 
 		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
 		void _encapIPinIP(Packet* p);
+
+		// Reference to the advertiser element
+		Advertiser* _advertiser;
 };
 
 CLICK_ENDDECLS

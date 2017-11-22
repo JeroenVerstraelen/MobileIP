@@ -20,8 +20,11 @@ class Monitor : public Element {
     void push(int, Packet* p);
 
 	private:
-		// temporary
-    uint temp;
+		// Vector of possible agents
+		Vector<IPAddress> _possibleAgents;
+
+		// The IP address of the MN
+		IPAddress _ipAddress;
 };
 
 CLICK_ENDDECLS
