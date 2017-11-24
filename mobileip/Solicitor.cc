@@ -18,7 +18,7 @@ int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 			return -1;
 	}
   _solicitationTimer.initialize(this);
-  _solicitationTimer.schedule_after_sec(3);
+  _solicitationTimer.schedule_after_sec(3); // TODO fix the static value of 3
 	return 0;
 }
 

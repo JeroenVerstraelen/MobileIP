@@ -22,9 +22,10 @@ class RequestGenerator : public Element {
 		const char *port_count() const	{ return "0/1"; } // TODO the generator will probably have an input in the future to deal with incoming replies
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
-
 		void run_timer(Timer* t);
 
+		// Generate a registration request and push it to output 0
+    void generateRequest(IPAddress agentAddress, IPAddress coa);
 
 	private:
 		// Source address of the mobile node
@@ -44,9 +45,6 @@ class RequestGenerator : public Element {
     Vector<IPAddress> _potentialAgents;
 
 		// Private methods
-    // Generate a registration request and push it to output 0
-    void _generateRequest();
-
 		// Update the remainingLifetime field of each elemenet in the pendingRegistrationsData vector
 		void _updateRemainingLifetime();
 };

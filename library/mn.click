@@ -22,7 +22,8 @@ elementclass MobileNode {
 	requestGenerator :: RequestGenerator(SRC $address, HA $home_agent);
 
 	// Monitors registration replies and ICMP advertisements, and initiates proper replies for them
-	monitor :: Monitor();
+	// through the use of solicitationgenerator and requestgenerator
+	monitor :: Monitor(SRC $address, REQUESTGENERATOR requestGenerator);
 
 	// Shared IP input path
 	ip :: Strip(14)

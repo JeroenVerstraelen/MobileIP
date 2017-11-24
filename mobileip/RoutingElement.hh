@@ -38,6 +38,9 @@ class RoutingElement : public Element {
 
 		// Reference to the advertiser element
 		Advertiser* _advertiser;
+
+		// Creates an ip header with a different src and dst address
+		click_ip* _createIp(const click_ip* iph, IPAddress newSrc, IPAddress newDest);
 };
 
 CLICK_ENDDECLS

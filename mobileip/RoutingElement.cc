@@ -39,13 +39,12 @@ void RoutingElement::push(int port, Packet* p){
 		return;
 	}
 	click_chatter("Received a message at the agent side, packet length = %d", p->length());
-	const click_ip* iph = p->ip_header();
+	click_ip* iph = (click_ip*) p->data();
 	IPAddress srcIP = iph->ip_src;
-	p->pull(sizeof(click_ip));
 
 	// ICMP related part
 	if (iph->ip_p == 1){
-		ICMPSolicitation* solicitation = (ICMPSolicitation*) p->data();
+		ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
 		if (solicitation->code != 0) { // TODO also add checksum check here
 			p->kill();
 			return;
@@ -59,19 +58,23 @@ void RoutingElement::push(int port, Packet* p){
 
 	// Registration related part (UDP message)
 	if (iph->ip_p == 17){
-		const click_udp* udpHeader = p->udp_header();
+		//const click_udp* udpHeader = p->udp_header();
+		click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
 		uint16_t destinationPort = ntohs(udpHeader->uh_dport);
 		uint16_t sourcePort = ntohs(udpHeader-> uh_sport);
-		p->pull(sizeof(click_udp));
 		if (destinationPort == 434){
 			click_chatter("Received a request message @ agent side");
-			RegistrationRequest* request = (RegistrationRequest*) p->data();
-			// if the request is for the agent itself ==> handle message
+			RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+			// if the request is for another agent ==> relay message
 			if (request->homeAgent != _agentAddressPublic.addr()){
 				click_chatter("Received a request not for the agent itself, relaying it");
-				// TODO relay the request here
+				iph->ip_src = _agentAddressPublic.in_addr();
+				iph->ip_dst = IPAddress(request->homeAgent).in_addr();
+				iph->ip_len = htons(p->length());
+				p->set_dst_ip_anno(IPAddress(iph->ip_dst));
+				output(1).push(p);
 			}
-			// if the request is for another agent ==> relay the message
+			// if the request is for the agent itself ==> handle the message
 			if (request->homeAgent == _agentAddressPublic.addr()){
 				click_chatter("Received a request for the agent itself, don't relay");
 				// TODO generate reply here
@@ -79,12 +82,11 @@ void RoutingElement::push(int port, Packet* p){
 		}
 		if (sourcePort == 434){
 			click_chatter("Received a reply message @ agent side");
-			RegistrationReply* reply = (RegistrationReply*) p->data();
+			RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 			// TODO forward reply message to the MN
 		}
 
 	}
-
 }
 
 void RoutingElement::_encapIPinIP(Packet* p){

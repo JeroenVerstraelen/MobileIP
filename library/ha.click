@@ -133,6 +133,6 @@ elementclass Agent {
 	advertiser[0] -> private_arpq;
 
 	// Packets with destination on the public network
-	routingElement[1] -> public_arpq; // TODO handle IP in IP encapsulation here
+	routingElement[1] -> SetIPChecksum -> SetUDPChecksum -> public_arpq; // TODO handle IP in IP encapsulation here
 
 }

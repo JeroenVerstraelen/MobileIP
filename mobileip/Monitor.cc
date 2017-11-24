@@ -17,9 +17,10 @@ Monitor::Monitor(){}
 Monitor::~ Monitor(){}
 
 int Monitor::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, cpEnd) < 0){
+	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_ipAddress, "REQUESTGENERATOR", cpkM, (RequestGenerator*) cpElement, &_reqGenerator, cpEnd) < 0){
 			return -1;
 	}
+	this->_homeNetwork = _ipAddress.unparse().substring(0, 9);
 	return 0;
 }
 
@@ -28,6 +29,9 @@ void Monitor::push(int, Packet* p){
 	IPAddress destIP = iph->ip_dst;
 	// handle advertisements
 	if (destIP == IPAddress("255.255.255.255")){
+		IPAddress srcIP = iph->ip_src;
+		click_chatter("%s = ip src address of incoming advertisement", srcIP.unparse().c_str());
+		//click_chatter("%s test ", srcIP.unparse().substring(0,9).c_str());
 		p->pull(sizeof(click_ip));
 	  click_chatter("Received a packet at the Mobile Node with dest 255.255.255.255, length %d", p->length());
 		ICMPAdvertisement* advertisement = (ICMPAdvertisement *) p->data();
@@ -36,7 +40,13 @@ void Monitor::push(int, Packet* p){
 			// TODO handle advertisement here
 			_possibleAgents.push_back(IPAddress(advertisement->routerAddress));
 		}
-		click_chatter("done");
+		if (!srcIP.unparse().starts_with(_homeNetwork)){
+			// If the advertisement is not from the home agent
+			click_chatter("Not at home");
+			// click_chatter("router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
+			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress));
+
+		}
 	} if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
 		// TODO handle incoming reply here
 	}

@@ -32,7 +32,7 @@ void RequestGenerator::run_timer(Timer* t){
 	}
 }
 
-void RequestGenerator::_generateRequest(){
+void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
   click_chatter("Request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -49,7 +49,7 @@ void RequestGenerator::_generateRequest(){
   iph->ip_p = IP_PROTO_UDP; // UDP protocol
   iph->ip_tos = 0x00;
   iph->ip_ttl = 64;
-  iph->ip_dst = IPAddress("192.168.3.254").in_addr(); // TODO use IP address found in potential agent vector here
+  iph->ip_dst = agentAddress.in_addr();
   iph->ip_src = _srcAddress.in_addr();
   iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
 	packet->set_dst_ip_anno(IPAddress(iph->ip_dst));
@@ -75,7 +75,7 @@ void RequestGenerator::_generateRequest(){
 	request->lifetime = htons(requestLifetime);
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
-	request->careOfAddress = IPAddress("0.0.0.0").addr(); //TODO fix the FA address here
+	request->careOfAddress = coa.addr();
 	request->identification = Timestamp().now_steady().doubleval();
 
 	// Set the UDP header checksum based on the initialized values

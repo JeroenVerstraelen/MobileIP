@@ -1,6 +1,10 @@
 #ifndef CLICK_MONITOR_HH
 #define CLICK_MONITOR_HH
 #include <click/element.hh>
+
+// Local imports
+#include "RequestGenerator.hh"
+
 CLICK_DECLS
 
 /*
@@ -25,6 +29,11 @@ class Monitor : public Element {
 
 		// The IP address of the MN
 		IPAddress _ipAddress;
+		String _homeNetwork;
+
+		// The request generator of the MN
+		RequestGenerator* _reqGenerator;
+
 };
 
 CLICK_ENDDECLS
