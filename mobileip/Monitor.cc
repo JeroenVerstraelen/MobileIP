@@ -11,6 +11,7 @@
 #include "structs/ICMPAdvertisement.hh"
 #include "structs/MobilityAgentAdvertisementExtension.hh"
 #include "utils/Configurables.hh"
+#include "utils/HelperFunctions.hh"
 
 CLICK_DECLS
 Monitor::Monitor(){}
@@ -41,8 +42,7 @@ void Monitor::push(int, Packet* p){
 			// TODO handle advertisement here
 			_possibleAgents.push_back(IPAddress(advertisement->routerAddress));
 		}
-		// TODO provide better pattern matching (string comparison untill the third .)
-		if (!srcIP.unparse().starts_with(_homeNetwork)){
+		if (sameNetwork(srcIP, _homeNetwork)) {
 			// If the advertisement is not from the home agent
 			click_chatter("Not at home");
 			// click_chatter("router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
