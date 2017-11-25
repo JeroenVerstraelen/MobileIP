@@ -76,7 +76,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
 	request->careOfAddress = coa.addr();
-	request->identification = Timestamp().now_steady().doubleval();
+	request->identification = Timestamp().now_steady().doubleval(); // TODO fix this value
 
 	// Set the UDP header checksum based on the initialized values
 	unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));

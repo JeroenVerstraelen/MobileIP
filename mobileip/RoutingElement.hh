@@ -30,17 +30,22 @@ class RoutingElement : public Element {
 		void push(int, Packet* p);
 
 	private:
-		// IPAddress of the agent
+		// Public IPAddress of the agent
 		IPAddress _agentAddressPublic;
 
-		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
-		void _encapIPinIP(Packet* p);
+		// Private IPAddress of the agent
+		IPAddress _agentAddressPrivate;
+
 
 		// Reference to the advertiser element
 		Advertiser* _advertiser;
 
-		// Creates an ip header with a different src and dst address
-		click_ip* _createIp(const click_ip* iph, IPAddress newSrc, IPAddress newDest);
+		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
+		void _encapIPinIP(Packet* p);
+
+		//  Generate a reply based on a specific request
+		void _generateReply(IPAddress, IPAddress, IPAddress, double, uint16_t, uint16_t);
+
 };
 
 CLICK_ENDDECLS

@@ -17,7 +17,7 @@ elementclass Agent {
 	advertiser :: Advertiser(PRIVATE $private_address, PUBLIC $public_address);
 
 	// This element will deal with incoming messages with DST 255.255.255.255, relaying messages etc.
-	routingElement :: RoutingElement(PUBLIC $public_address, ADVERTISER advertiser);
+	routingElement :: RoutingElement(PUBLIC $public_address, PRIVATE $private_address, ADVERTISER advertiser);
 
 	// Shared IP input path and routing table
 	ip :: Strip(14)
@@ -129,10 +129,13 @@ elementclass Agent {
 		-> rt;
 
 	// Packets with destination on the private network
-	routingElement[0] -> private_arpq;
+	routingElement[0] -> class1 :: IPClassifier(udp, -)
+	class1[0] -> SetIPChecksum -> SetUDPChecksum -> private_arpq;
+	class1[1] -> SetIPChecksum -> private_arpq;
 	advertiser[0] -> private_arpq;
 
 	// Packets with destination on the public network
-	routingElement[1] -> SetIPChecksum -> SetUDPChecksum -> public_arpq; // TODO handle IP in IP encapsulation here
-
+	routingElement[1] -> Print(Test) -> class2 :: IPClassifier(ip proto udp, -) // TODO handle IP in IP encapsulation here
+	class2[0] -> Print(UDP) -> SetIPChecksum -> SetUDPChecksum -> public_arpq;
+	class2[1] -> Print(NOTUDP) -> SetIPChecksum -> public_arpq;
 }
