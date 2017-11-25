@@ -27,24 +27,25 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 void RoutingElement::push(int port, Packet* p){
+	click_ip* iph = (click_ip*) p->data();
+	IPAddress srcIP = iph->ip_src;
+	IPAddress dstAddress = iph->ip_dst;
 	// Don't manipulate the packet coming from the CN
 	if (port == 1){
+		click_chatter("Messages from CN");
 		if (_mobilityBindings.empty()) {
 			// If all MN's are @ home just push it to the local network
 			output(0).push(p);
 		} else {
-			// TODO ip in ip encap
 			// If MN is away IP in IP encapsulate and send it to the public network
 			click_chatter("MN is on vacation, trying to tunnel messages to his COA");
-			_encapIPinIP(p);
-			output(1).push(p);
+			IPAddress tunnelEndpoint = _findCareOfAddress(dstAddress);
+			// click_chatter("Tunnel endpoint %s", tunnelEndpoint.unparse().c_str());
+			_encapIPinIP(p, tunnelEndpoint);
 		}
 		return;
 	}
-	click_chatter("Received a message at the agent side, packet length = %d", p->length());
-	click_ip* iph = (click_ip*) p->data();
-	IPAddress srcIP = iph->ip_src;
-
+	click_chatter("Received a packet at the agent side, packet length = %d", p->length());
 	// ICMP related part
 	if (iph->ip_p == 1){
 		ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
@@ -59,6 +60,17 @@ void RoutingElement::push(int port, Packet* p){
 			p->kill();
 			return;
 		}
+		// output(1).push(p);
+	}
+
+	// IP in IP related part
+	// Decapsulate packet here and forward to the MN
+	if (iph->ip_p == 4){
+		click_chatter("Handling decapsulation, reached tunnel endpoint");
+		p->pull(sizeof(click_ip));
+		click_ip* ipHeader = (click_ip*)p->data();
+		p->set_dst_ip_anno(IPAddress(ipHeader->ip_dst));
+		output(0).push(p);
 	}
 
 	// Registration related part (UDP message)
@@ -98,6 +110,7 @@ void RoutingElement::push(int port, Packet* p){
 				_mobilityBindings.push_back(mobilityData);
 
 				// TODO delete MobilityBinding when MN is at home
+				// TODO delete binding if no If Lifetime of mobility binding expires before new valid request
 				// TODO update MobilityBinding when MN is still away but sends a new request
 
 				output(2).push(p);
@@ -119,18 +132,20 @@ void RoutingElement::push(int port, Packet* p){
 	output(2).push(p);
 }
 
-void RoutingElement::_encapIPinIP(Packet* p){
-	const click_ip* innerIP = p->ip_header(); //TODO check if TTL is decreased by the DecTTL @ ha.click
+void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
+	click_chatter("Encapsulate ip in ip");
+	const click_ip* innerIP = p->ip_header(); //TODO dont let decl ip decrease the ttl
 	WritablePacket* newPacket = p->push(sizeof(click_ip)); // Create new packet with place for outer IP header
-	click_ip* outerIP;
+	click_ip* outerIP = reinterpret_cast<click_ip *>(newPacket->data());;
 	outerIP->ip_v = 4;
 	outerIP->ip_hl = sizeof(click_ip) >> 2;
 	outerIP->ip_p = 4;
+	outerIP->ip_off = 0;
 	outerIP->ip_tos = innerIP->ip_tos;
 	outerIP->ip_len = htons(newPacket->length());
-	outerIP->ip_ttl = 10; // TODO change this possibly
+	outerIP->ip_ttl = 64; // TODO change this possibly
 	outerIP->ip_src = _agentAddressPublic.in_addr();
-	outerIP->ip_dst = IPAddress("192.168.3.254").in_addr(); // TODO not hardcoded
+	outerIP->ip_dst = careOfAddress.in_addr();
 	outerIP->ip_sum = click_in_cksum((unsigned char *)outerIP, sizeof(click_ip));
 	newPacket->set_dst_ip_anno(IPAddress(outerIP->ip_dst));
 	newPacket->set_ip_header(outerIP, sizeof(click_ip));
@@ -183,5 +198,16 @@ void RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress,
 	output(3).push(packet);
 }
 
+IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
+	IPAddress returnValue = IPAddress();
+	for (int i=0; i < _mobilityBindings.size(); i++){
+		MobilityBinding tempBinding = _mobilityBindings.at(i);
+		if (IPAddress(tempBinding.homeAddress) == mobileNodeAddress){
+			returnValue = IPAddress(tempBinding.careOfAddress);
+			break;
+		}
+	}
+	return returnValue;
+}
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)
