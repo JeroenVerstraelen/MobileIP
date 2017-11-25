@@ -38,15 +38,15 @@ void Advertiser::run_timer(Timer* t){
 }
 
 void Advertiser::respondToSolicitation(){
-	click_chatter("Responding to solicitation");
+	click_chatter("[Advertiser] Responding to solicitation");
 	_advertisementTimer.clear();
 	unsigned int delay = generateRandomNumber(0, maxResponseDelay*1000);
-	click_chatter("Delay is %d", delay);
+	click_chatter("[Advertiser] Delay is %d", delay);
 	_advertisementTimer.reschedule_after_msec(delay);
 }
 
 void Advertiser::_generateAdvertisement() {
-	click_chatter("Router advertisement");
+	click_chatter("[Advertiser] Sending ICMP router advertisement");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension);

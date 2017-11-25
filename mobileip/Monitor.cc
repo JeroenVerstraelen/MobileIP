@@ -27,31 +27,48 @@ int Monitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 void Monitor::push(int, Packet* p){
+	click_chatter("[Monitor::push]");
 	const click_ip* iph = p->ip_header();
 	IPAddress destIP = iph->ip_dst;
-	// handle advertisements
-	if (destIP == broadCast){
+	IPAddress s = iph->ip_src;
+	click_chatter("[Monitor] Source = %s", s.unparse().c_str());
+	// handle ICMP advertisements
+	if (destIP == broadCast) {
+	  	click_chatter("[Monitor] Received a packet at the Mobile Node with dest 255.255.255.255, length %d", p->length());
 		IPAddress srcIP = iph->ip_src;
-		click_chatter("%s = ip src address of incoming advertisement", srcIP.unparse().c_str());
-		//click_chatter("%s test ", srcIP.unparse().substring(0,9).c_str());
+		click_chatter("[Monitor] %s = ip src address of incoming ICMP advertisement", srcIP.unparse().c_str());
 		p->pull(sizeof(click_ip));
-	  click_chatter("Received a packet at the Mobile Node with dest 255.255.255.255, length %d", p->length());
 		ICMPAdvertisement* advertisement = (ICMPAdvertisement *) p->data();
 		MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));
 		if (advertisement->type == 9){
 			// TODO handle advertisement here
 			_possibleAgents.push_back(IPAddress(advertisement->routerAddress));
 		}
-		if (!srcIP.unparse().starts_with(_homeNetwork)) {
+		if (!sameNetwork(srcIP, _ipAddress)) {
 			// If the advertisement is not from the home agent
-			click_chatter("Not at home");
+			click_chatter("[Monitor] Mobile node is NOT AT HOME");
 			// click_chatter("router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
 			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress));
-
 		}
-	} if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
+		else {
+			click_chatter("[Monitor] Mobile node is AT HOME");
+		}
+	} 
+	click_chatter("[Monitor] IPH->IP_P:  %d", iph->ip_p);
+	click_chatter("[Monitor] CHECK: %d", destIP == _ipAddress.in_addr());	
+	if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
 		// TODO handle incoming reply here
-		click_chatter("Incoming reply at the MN side");
+		click_chatter("[Monitor] Received MobileIP Reply at the Mobile Node");
+		
+
+
+		// Registration was accepted
+			
+
+
+		// Registration was denied by FA
+		// Registration was denied by HA
+		
 	}
   output(0).push(p);
 }
