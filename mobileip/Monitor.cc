@@ -42,7 +42,7 @@ void Monitor::push(int, Packet* p){
 			// TODO handle advertisement here
 			_possibleAgents.push_back(IPAddress(advertisement->routerAddress));
 		}
-		if (sameNetwork(srcIP, _homeNetwork)) {
+		if (sameNetwork(srcIP, _ipAddress)) {
 			// If the advertisement is not from the home agent
 			click_chatter("Not at home");
 			// click_chatter("router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
