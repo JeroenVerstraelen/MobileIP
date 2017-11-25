@@ -29,13 +29,13 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 void RoutingElement::push(int port, Packet* p){
 	// Don't manipulate the packet coming from the CN
 	if (port == 1){
-		// TODO fix this with not a boolean value
-		bool atHome = true;
-		if (atHome) {
-			// If MN is @ home just push it to the local network
+		if (_mobilityBindings.empty()) {
+			// If all MN's are @ home just push it to the local network
 			output(0).push(p);
 		} else {
+			// TODO ip in ip encap
 			// If MN is away IP in IP encapsulate and send it to the public network
+			click_chatter("MN is on vacation, trying to tunnel messages to his COA");
 			_encapIPinIP(p);
 			output(1).push(p);
 		}
@@ -86,18 +86,27 @@ void RoutingElement::push(int port, Packet* p){
 			// if the request is for the agent itself ==> handle the message
 			if (request->homeAgent == _agentAddressPublic.addr()){
 				click_chatter("Received a request for the agent itself, don't relay");
-				// TODO generate reply here
 				RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 				_generateReply(IPAddress(request->careOfAddress), IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport);
-				// p->kill(); // Packet is no longer needed
+
+				// Create MobilityBinding for the MN request
+				MobilityBinding mobilityData;
+				mobilityData.homeAddress = request->homeAddress;
+				mobilityData.careOfAddress = request->careOfAddress;
+				mobilityData.lifetime = request->lifetime;
+				mobilityData.replyIdentification = request->identification;
+				_mobilityBindings.push_back(mobilityData);
+
+				// TODO delete MobilityBinding when MN is at home
+				// TODO update MobilityBinding when MN is still away but sends a new request
+
 				output(2).push(p);
 				return;
 			}
 		}
 		if (sourcePort == 434){
-			click_chatter("Received a reply message @ agent side");
+			click_chatter("Received a reply message @ agent side, forwarding to MN");
 			RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-			// TODO forward reply message to the MN
 			iph->ip_src = _agentAddressPrivate.in_addr();
 			iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
 			iph->ip_len = htons(p->length());
@@ -155,7 +164,8 @@ void RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress,
 	udpHeader->uh_sport = srcPort;
 	udpHeader->uh_dport = dstPort;
 	udpHeader->uh_ulen = htons(packet->length() - sizeof(click_ip));
-	udpHeader->uh_sum = 0;
+	// udpHeader->uh_sum = 0;
+
 
 	RegistrationReply* reply = (RegistrationReply*) (packet->data() + sizeof(click_ip) + sizeof(click_udp));
 	reply->type = 3;
@@ -164,8 +174,13 @@ void RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress,
 	reply->homeAddress = homeAddress.addr();
 	reply->homeAgent = homeAgent.addr();
 	reply->identification = Timestamp(id).doubleval(); // TODO
+
+	// Set the UDP header checksum based on the initialized values
+	// unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationReply));
+	// udpHeader->uh_sum = click_in_cksum_pseudohdr(csum, iph, sizeof(click_udp) + sizeof(RegistrationReply));
+
 	click_chatter("Pushing reply with length %d", packet->length());
-	output(1).push(packet);
+	output(3).push(packet);
 }
 
 CLICK_ENDDECLS

@@ -4,6 +4,7 @@
 
 // Local imports
 #include "Advertiser.hh"
+#include "structs/MobilityBinding.hh"
 
 CLICK_DECLS
 /*
@@ -17,6 +18,7 @@ CLICK_DECLS
  * 	Output 0 ==> packets to private network
  *	Output 1 ==> packets to the public network
  * 	Output 2 ==> packets to the agent itself
+ *  Output 3 ==> temporary fix for reply TODO
 */
 class RoutingElement : public Element {
 	public:
@@ -24,7 +26,7 @@ class RoutingElement : public Element {
 		~RoutingElement();
 
 		const char *class_name() const	{ return "RoutingElement"; }
-		const char *port_count() const	{ return "2/3"; }
+		const char *port_count() const	{ return "2/4"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		void push(int, Packet* p);
@@ -36,6 +38,8 @@ class RoutingElement : public Element {
 		// Private IPAddress of the agent
 		IPAddress _agentAddressPrivate;
 
+		// Keep track of MN which are not home
+		Vector<MobilityBinding> _mobilityBindings;
 
 		// Reference to the advertiser element
 		Advertiser* _advertiser;

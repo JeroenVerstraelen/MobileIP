@@ -94,6 +94,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 
 	// If timer not yet scheduled ==> schedule it
 	// Request is sent so keep remainingLifetime up to date
+	// TODO make realistic scheduling
 	if (!_timer.scheduled()){ _timer.schedule_after_sec(1);}
 
 	// Push the packet to the private network
@@ -102,9 +103,8 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 
 void RequestGenerator::_updateRemainingLifetime(){
 	for (int it=0; it<_pendingRegistrationsData.size(); it++){
-		click_chatter("Lifetime before %d", _pendingRegistrationsData.at(it).remainingLifetime);
+		click_chatter("Lifetime %d", _pendingRegistrationsData.at(it).remainingLifetime);
 		_pendingRegistrationsData.at(it).remainingLifetime--; // Decrement remainingLifetime
-		click_chatter("Lifetime after %d", _pendingRegistrationsData.at(it).remainingLifetime);
 	}
 }
 
