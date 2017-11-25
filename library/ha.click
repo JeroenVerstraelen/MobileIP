@@ -30,20 +30,15 @@ elementclass Agent {
 					$public_address:ipnet 2,
 					0.0.0.0/0 $gateway 2);
 
-
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (2);
 
 	// Input and output paths for interface 0
 	input
-		-> tree::Tee(2)[0]
 		-> filter::HostEtherFilter(ETHER $private_address, DROP_OTHER true)[0]
-		-> Print(AfterInputFilter)		
 		-> private_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, 12/0800)
 		-> ARPResponder($private_address)
 		-> output;
-	filter[1] -> [1]output;
-	tree[1] -> IPPrint(LABEL beforeINPUT, CONTENTS 'ASCII') -> Discard;
 
 	private_arpq :: ARPQuerier($private_address)
 		-> output;
@@ -65,6 +60,8 @@ elementclass Agent {
 
 	public_arpq :: ARPQuerier($public_address)
 		-> [1]output;
+
+	filter[1] -> Strip(14) -> DecIPTTL -> public_arpq;
 
 	public_class[1]
 		-> arpt[1]
@@ -106,7 +103,6 @@ elementclass Agent {
 		-> ICMPError($private_address, unreachable, needfrag)
 		-> rt;
 
-
 	rt[2]
 		-> DropBroadcasts
 		-> public_paint :: PaintTee(2)
@@ -134,8 +130,8 @@ elementclass Agent {
 
 	// Packets with destination on the private network
 	routingElement[0] -> class1 :: IPClassifier(udp, -)
-	class1[0] -> Print(Sending1UDP) -> SetIPChecksum -> SetUDPChecksum -> Print(Sending2) -> private_arpq;
-	class1[1] -> Print(Sending1NONUDP) -> SetIPChecksum -> Print(Sending2NONUDP) -> private_arpq;
+	class1[0] -> SetIPChecksum -> SetUDPChecksum -> private_arpq;
+	class1[1] -> SetIPChecksum -> private_arpq;
 	advertiser[0] -> private_arpq;
 
 	// Packets with destination on the public network
