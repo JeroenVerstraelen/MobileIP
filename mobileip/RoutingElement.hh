@@ -49,7 +49,7 @@ class RoutingElement : public Element {
 		void _encapIPinIP(Packet* p, IPAddress coa);
 
 		//  Generate a reply based on a specific request
-		Packet* _generateReply(IPAddress, IPAddress, IPAddress, double, uint16_t, uint16_t);
+		Packet* _generateReply(IPAddress, IPAddress, IPAddress, double, uint16_t, uint16_t, uint16_t);
 
 		// Find the care of address for the mobile node which is away
 		// This information is stored in the mobilitybindings attribute

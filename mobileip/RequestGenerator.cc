@@ -26,13 +26,19 @@ int RequestGenerator::configure(Vector<String> &conf, ErrorHandler *errh) {
 
 void RequestGenerator::run_timer(Timer* t){
 	// Update the remainingLifetime fields in the pendingRegistrationsData vector
+	// click_chatter("[RequestGenerator] Timer is triggered");
 	if (t == &_timer){
 		_updateRemainingLifetime();
 		_timer.reschedule_after_sec(1);
 	}
 }
 
-void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
+void RequestGenerator::stopRequests(){
+	_timer.clear();
+	_pendingRegistrationsData.clear();
+}
+
+void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime){
 	click_chatter("[RequestGenerator] Sending MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -72,7 +78,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 	request->r = 0;
 	request->T = 0;
 	request->x = 0;
-	request->lifetime = htons(requestLifetime);
+	request->lifetime = htons(lifetime);
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
 	request->careOfAddress = coa.addr();

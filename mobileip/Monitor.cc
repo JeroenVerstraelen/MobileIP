@@ -33,6 +33,7 @@ void Monitor::push(int, Packet* p){
 	IPAddress s = iph->ip_src;
 	// click_chatter("[Monitor] Source = %s", s.unparse().c_str());
 	// handle ICMP advertisements
+
 	if (destIP == broadCast) {
 	  click_chatter("[Monitor] Received a packet at the Mobile Node with dest 255.255.255.255, length %d", p->length());
 		IPAddress srcIP = iph->ip_src;
@@ -49,7 +50,7 @@ void Monitor::push(int, Packet* p){
 			// If the advertisement is not from the home agent
 			click_chatter("[Monitor] Mobile node is NOT AT HOME");
 			// click_chatter("router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
-			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress));
+			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress), requestLifetime);
 			_atHome = false;
 			p->kill();
 			return;
@@ -58,17 +59,26 @@ void Monitor::push(int, Packet* p){
 			click_chatter("[Monitor] Mobile node is BACK AT HOME");
 			_atHome = true;
 			// If the advertisement is from the home agent
-			click_chatter("TEST router address coa %s", IPAddress(advertisement->routerAddress).unparse().c_str());
-			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress));
+			// Send request with lifetime 0
+			_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress), 0);
 		}
 	}
 	// click_chatter("[Monitor] IPH->IP_P:  %d", iph->ip_p);
 	// click_chatter("[Monitor] CHECK: %d", destIP == _ipAddress.in_addr());
-	if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
-		// TODO handle incoming reply here, update registration request
-		click_chatter("[Monitor] Received MobileIP Reply at the Mobile Node");
 
-		// Registration was accepted
+	if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
+		// No need for the ip and udp header here
+		p->pull(sizeof(click_ip));
+		p->pull(sizeof(click_udp));
+		click_chatter("[Monitor] Received MobileIP Reply at the Mobile Node");
+		RegistrationReply* reply = (RegistrationReply*) p->data();
+		if (ntohs(reply->lifetime) == 0){
+			// Reply with lifetime 0 => stop the requests
+			_reqGenerator->stopRequests();
+		}
+
+		// TODO further implement the following scenario's
+		// Registration was accepted (basic version is done)
 		// Registration was denied by FA
 		// Registration was denied by HA
 

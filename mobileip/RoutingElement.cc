@@ -104,15 +104,15 @@ void RoutingElement::push(int port, Packet* p){
 				click_chatter("[RoutingElement] Received a request for the agent itself, don't relay");
 				RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
-				// Create, update or delete MobilityBinding for the MN requestMobilityBinding mobilityData
+				// Create, update or delete MobilityBinding for the MN request
 				MobilityBinding mobilityData;
 				mobilityData.homeAddress = request->homeAddress;
 				mobilityData.careOfAddress = request->careOfAddress;
-				mobilityData.lifetime = request->lifetime;
+				mobilityData.lifetime = ntohs(request->lifetime);
 				mobilityData.replyIdentification = request->identification;
 				IPAddress replyDestination = _updateMobilityBindings(mobilityData);
 
-				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport);
+				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
 
 				// Kill the request packet
 				p->kill();
@@ -161,7 +161,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	output(1).push(newPacket);
 }
 
-Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, double id, uint16_t srcPort, uint16_t dstPort){
+Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, double id, uint16_t srcPort, uint16_t dstPort, uint16_t reqLifetime){
 	click_chatter("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -194,7 +194,8 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddre
 	RegistrationReply* reply = (RegistrationReply*) (packet->data() + sizeof(click_ip) + sizeof(click_udp));
 	reply->type = 3;
 	reply->code = 0;
-	reply->lifetime = htons(registrationLifetime);
+	reply->lifetime = htons(reqLifetime);
+	if (reqLifetime > registrationLifetime) reply->lifetime = htons(registrationLifetime);
 	reply->homeAddress = homeAddress.addr();
 	reply->homeAgent = homeAgent.addr();
 	reply->identification = Timestamp(id).doubleval(); // TODO

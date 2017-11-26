@@ -19,13 +19,16 @@ class RequestGenerator : public Element {
 		~RequestGenerator();
 
 		const char *class_name() const	{ return "RequestGenerator"; }
-		const char *port_count() const	{ return "0/1"; } // TODO the generator will probably have an input in the future to deal with incoming replies
+		const char *port_count() const	{ return "0/1"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		void run_timer(Timer* t);
 
 		// Generate a registration request and push it to output 0
-    	void generateRequest(IPAddress agentAddress, IPAddress coa);
+    	void generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t);
+
+		// Stop sending requests when MN is at home
+		void stopRequests();
 
 	private:
 		// Source address of the mobile node
