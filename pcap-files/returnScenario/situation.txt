@@ -1,0 +1,5 @@
+This folder contain the PCAP files for the returning MN scenario:
+
+	Agents just advertise their presence through advertisements
+	Mobile node sends router solicitations periodically
+	Mobile node returns home after he visited a foreign network 
