@@ -1,0 +1,5 @@
+Finale inzending van Mobile IP:
+    -) Timing verder finalizeren
+    -) ICMP router solicitations en advertisements correcter maken qua timing @Jeroen
+    -) Mobility bindings nog verder uitwerken
+    -) Error handling, foutieve codes via de handlers van de referentie implementatie
