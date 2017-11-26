@@ -18,7 +18,8 @@ CLICK_DECLS
  * 	Output 0 ==> packets to private network
  *	Output 1 ==> packets to the public network
  * 	Output 2 ==> packets to the agent itself
- *  Output 3 ==> HOT fix for reply TODO
+ *  Output 3 ==> reply to public network without setting UDP checksum
+ *	Output 4 ==> reply to private network without setting UDP checksum
 */
 class RoutingElement : public Element {
 	public:
@@ -26,7 +27,7 @@ class RoutingElement : public Element {
 		~RoutingElement();
 
 		const char *class_name() const	{ return "RoutingElement"; }
-		const char *port_count() const	{ return "2/4"; }
+		const char *port_count() const	{ return "2/5"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 		void push(int, Packet* p);
@@ -48,12 +49,15 @@ class RoutingElement : public Element {
 		void _encapIPinIP(Packet* p, IPAddress coa);
 
 		//  Generate a reply based on a specific request
-		void _generateReply(IPAddress, IPAddress, IPAddress, double, uint16_t, uint16_t);
+		Packet* _generateReply(IPAddress, IPAddress, IPAddress, double, uint16_t, uint16_t);
 
 		// Find the care of address for the mobile node which is away
 		// This information is stored in the mobilitybindings attribute
 		IPAddress _findCareOfAddress(IPAddress mobileNode);
 
+		// Create, update or delete MobilityBinding for the MN request
+		// Return the IPAddress to which the reply must be sent
+		IPAddress _updateMobilityBindings(MobilityBinding data);
 };
 
 CLICK_ENDDECLS

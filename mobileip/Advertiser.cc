@@ -25,8 +25,8 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 int Advertiser::initialize(ErrorHandler *) {
-    _advertisementTimer.initialize(this);   					// Initialize timer object
-    _advertisementTimer.schedule_after_msec(500);    // Set the timer to fire after configuration is done (1 second)
+    _advertisementTimer.initialize(this);   		// Initialize timer object
+    _advertisementTimer.schedule_after_msec(500);   // Set the timer to fire after configuration is done (1 second)
     return 0;
 }
 
@@ -41,7 +41,7 @@ void Advertiser::respondToSolicitation(){
 	click_chatter("[Advertiser] Responding to solicitation");
 	_advertisementTimer.clear();
 	unsigned int delay = generateRandomNumber(0, maxResponseDelay*1000);
-	click_chatter("[Advertiser] Delay is %d", delay);
+	// click_chatter("[Advertiser] Delay is %d", delay);
 	_advertisementTimer.reschedule_after_msec(delay);
 }
 

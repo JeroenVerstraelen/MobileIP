@@ -25,14 +25,17 @@ class RequestGenerator : public Element {
 		void run_timer(Timer* t);
 
 		// Generate a registration request and push it to output 0
-    void generateRequest(IPAddress agentAddress, IPAddress coa);
+    	void generateRequest(IPAddress agentAddress, IPAddress coa);
 
 	private:
 		// Source address of the mobile node
-    IPAddress _srcAddress;
+    	IPAddress _srcAddress;
 
 		// IP address of the mobile node's home agent
 		IPAddress _homeAgent;
+
+		// IP address of the mobile node's current care of address
+		IPAddress _currentCoa;
 
 		// Timer to keep the registration data up to date
 		Timer _timer;
@@ -40,9 +43,9 @@ class RequestGenerator : public Element {
 		// Vector of datastructs with information about the pending registrations
 		Vector<RegistrationData> _pendingRegistrationsData;
 
-    // Vector of potential agents
-    // The generator will use the first IP address of the vector as destination address of its request message
-    Vector<IPAddress> _potentialAgents;
+	    // Vector of potential agents
+	    // The generator will use the first IP address of the vector as destination address of its request message
+	    Vector<IPAddress> _potentialAgents;
 
 		// Private methods
 		// Update the remainingLifetime field of each elemenet in the pendingRegistrationsData vector

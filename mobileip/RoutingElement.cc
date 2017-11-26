@@ -11,6 +11,7 @@
 #include "structs/RegistrationRequest.hh"
 #include "structs/RegistrationReply.hh"
 #include "utils/Configurables.hh"
+#include "utils/HelperFunctions.hh"
 
 CLICK_DECLS
 RoutingElement::RoutingElement(){}
@@ -27,13 +28,13 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 void RoutingElement::push(int port, Packet* p){
-	click_chatter("[RoutingElement::push %s] Port: %d", _agentAddressPublic.unparse().c_str(), port);
+	// click_chatter("[RoutingElement::push %s] Port: %d", _agentAddressPublic.unparse().c_str(), port);
 	click_ip* iph = (click_ip*) p->data();
 	IPAddress srcIP = iph->ip_src;
 	IPAddress dstAddress = iph->ip_dst;
 	// Don't manipulate the packet coming from the CN
 	if (port == 1){
-		click_chatter("[RoutingElement] Messsage from Corresponding Node");
+		click_chatter("[RoutingElement] Message from Corresponding Node");
 		if (_mobilityBindings.empty()) {
 			click_chatter("[RoutingElement] Mobile Node is at home -> Sending directly to local network");
 			// If all MN's are @ home just push it to the local network
@@ -47,7 +48,7 @@ void RoutingElement::push(int port, Packet* p){
 		}
 		return;
 	}
-	click_chatter("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
+	// click_chatter("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
 	// ICMP related part
 	if (iph->ip_p == 1){
 		click_chatter("[RoutingElement] ICMP related message");
@@ -57,8 +58,7 @@ void RoutingElement::push(int port, Packet* p){
 			return;
 		}
 		if (solicitation->type == 10){
-			click_chatter("[RoutingElement] Received a solicitation");
-			click_chatter("[RoutingElement] Responding to solicitation");
+			click_chatter("[RoutingElement] Received a solicitation and responding to it");
 			// TODO handle solicitation message accordingly
 			_advertiser->respondToSolicitation();
 			p->kill();
@@ -103,21 +103,26 @@ void RoutingElement::push(int port, Packet* p){
 			if (request->homeAgent == _agentAddressPublic.addr()){
 				click_chatter("[RoutingElement] Received a request for the agent itself, don't relay");
 				RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-				_generateReply(IPAddress(request->careOfAddress), IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport);
 
-				// Create MobilityBinding for the MN request
+				// Create, update or delete MobilityBinding for the MN requestMobilityBinding mobilityData
 				MobilityBinding mobilityData;
 				mobilityData.homeAddress = request->homeAddress;
 				mobilityData.careOfAddress = request->careOfAddress;
 				mobilityData.lifetime = request->lifetime;
 				mobilityData.replyIdentification = request->identification;
-				_mobilityBindings.push_back(mobilityData);
+				IPAddress replyDestination = _updateMobilityBindings(mobilityData);
 
-				// TODO delete MobilityBinding when MN is at home
-				// TODO delete binding if no If Lifetime of mobility binding expires before new valid request
-				// TODO update MobilityBinding when MN is still away but sends a new request
+				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport);
 
-				output(2).push(p);
+				// Kill the request packet
+				p->kill();
+				// Push reply
+				if (sameNetwork(replyPacket->dst_ip_anno(), _agentAddressPrivate)){
+					// click_chatter("[RoutingElement] Pushing reply to local network");
+					output(4).push(replyPacket);
+					return;
+				}
+				output(3).push(replyPacket);
 				return;
 			}
 		}
@@ -137,7 +142,7 @@ void RoutingElement::push(int port, Packet* p){
 }
 
 void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
-	click_chatter("[RoutingElement] Encapsulate IPinIP and send to FA");
+	// click_chatter("[RoutingElement] Encapsulate IPinIP and send to FA");
 	const click_ip* innerIP = p->ip_header(); //TODO dont let decl ip decrease the ttl
 	WritablePacket* newPacket = p->push(sizeof(click_ip)); // Create new packet with place for outer IP header
 	click_ip* outerIP = reinterpret_cast<click_ip *>(newPacket->data());;
@@ -156,7 +161,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	output(1).push(newPacket);
 }
 
-void RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, double id, uint16_t srcPort, uint16_t dstPort){
+Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, double id, uint16_t srcPort, uint16_t dstPort){
 	click_chatter("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -198,8 +203,7 @@ void RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress,
 	// unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationReply));
 	// udpHeader->uh_sum = click_in_cksum_pseudohdr(csum, iph, sizeof(click_udp) + sizeof(RegistrationReply));
 
-	click_chatter("[RoutingElement] Pushing reply with length %d", packet->length());
-	output(3).push(packet);
+	return packet;
 }
 
 IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
@@ -212,6 +216,26 @@ IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
 		}
 	}
 	return returnValue;
+}
+
+IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
+	click_chatter("[RoutingElement] Update mobility bindings size = %d", _mobilityBindings.size());
+	bool isPresent = false;
+	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
+		if (data.homeAddress == it->homeAddress){
+			isPresent = true;
+			// click_chatter("[RoutingElement] Binding already present in vector");
+			if (data.careOfAddress == it->careOfAddress){
+				// If MN is back home just return his home address to forward the reply to
+				_mobilityBindings.erase(it);
+				return IPAddress(data.homeAddress);
+			}
+			// TODO 3) update MobilityBinding when MN is still away but sends a new request
+		}
+	}
+	// TODO 2) delete binding if lifetime of mobility binding expires before new valid request
+	if (!isPresent) _mobilityBindings.push_back(data);
+	return IPAddress(data.careOfAddress);
 }
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)

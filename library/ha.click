@@ -135,9 +135,11 @@ elementclass Agent {
 	advertiser[0] -> private_arpq;
 
 	// Packets with destination on the public network
-	routingElement[1] -> SetIPChecksum -> class2 :: IPClassifier(ip proto udp, -); // TODO handle IP in IP encapsulation here
+	routingElement[1] -> SetIPChecksum -> class2 :: IPClassifier(ip proto udp, -);
 	class2[0] -> SetUDPChecksum -> public_arpq;
 	class2[1] -> public_arpq;
-	routingElement[3] -> Print(Test123)-> SetIPChecksum -> public_arpq;
+	// TODO fix this
+	routingElement[3] -> SetIPChecksum -> public_arpq;
+	routingElement[4] -> SetIPChecksum -> private_arpq;
 
 }

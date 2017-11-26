@@ -34,6 +34,9 @@ class Monitor : public Element {
 		// The request generator of the MN
 		RequestGenerator* _reqGenerator;
 
+		// TODO temp boolean value which keeps track if MN is at home
+		bool _atHome;
+
 };
 
 CLICK_ENDDECLS

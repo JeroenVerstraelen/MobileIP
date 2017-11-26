@@ -76,6 +76,8 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
 	request->careOfAddress = coa.addr();
+	if (coa == _homeAgent) request->careOfAddress = _currentCoa.addr();
+	_currentCoa = IPAddress(request->careOfAddress);
 	request->identification = Timestamp().now_steady().doubleval(); // TODO fix this value
 
 	// Set the UDP header checksum based on the initialized values
@@ -103,7 +105,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa){
 
 void RequestGenerator::_updateRemainingLifetime(){
 	for (int it=0; it<_pendingRegistrationsData.size(); it++){
-		click_chatter("[RequestGenerator] Lifetime %d", _pendingRegistrationsData.at(it).remainingLifetime);
+		// click_chatter("[RequestGenerator] Lifetime %d", _pendingRegistrationsData.at(it).remainingLifetime);
 		_pendingRegistrationsData.at(it).remainingLifetime--; // Decrement remainingLifetime
 	}
 }
