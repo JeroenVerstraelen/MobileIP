@@ -88,7 +88,7 @@ void Advertiser::_generateAdvertisement() {
 	extension->R = 1;
 	extension->B = 0;
 	extension->H = 1;
-	extension->F = 0;	// In the future this must be configurable (agent can be HA and FA at the same time)
+	extension->F = 1;
 	extension->M = 0;
 	extension->G = 0;
 	extension->r = 0;

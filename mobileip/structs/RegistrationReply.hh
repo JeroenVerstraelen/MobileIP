@@ -7,5 +7,6 @@ struct RegistrationReply{
     uint16_t lifetime;
     uint32_t homeAddress;
     uint32_t homeAgent;
-    uint64_t identification;
+    uint32_t identification;
+	uint32_t filling; // TODO
 };

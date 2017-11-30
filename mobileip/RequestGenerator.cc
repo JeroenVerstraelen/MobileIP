@@ -4,11 +4,13 @@
 #include <clicknet/ether.h>
 #include <clicknet/udp.h>
 #include <clicknet/ip.h>
+#include <limits.h>
 
 // Local imports
 #include "RequestGenerator.hh"
 #include "structs/RegistrationRequest.hh"
 #include "utils/Configurables.hh"
+#include "utils/HelperFunctions.hh"
 
 CLICK_DECLS
 RequestGenerator::RequestGenerator():_timer(this){}
@@ -62,7 +64,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 
 	// UDP header
 	click_udp *udpHeader = (click_udp *) (packet->data() + sizeof(click_ip));
-	udpHeader->uh_sport = htons(0);
+	udpHeader->uh_sport = htons(63344);
 	udpHeader->uh_dport = htons(434);
 	udpHeader->uh_ulen = htons(packet->length() - sizeof(click_ip));
 	udpHeader->uh_sum = 0;
@@ -84,7 +86,8 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	request->careOfAddress = coa.addr();
 	if (coa == _homeAgent) request->careOfAddress = _currentCoa.addr();
 	_currentCoa = IPAddress(request->careOfAddress);
-	request->identification = Timestamp().now_steady().doubleval(); // TODO fix this value
+	request->identification = htonl(generateRandomNumber(0, UINT_MAX));
+	click_chatter("[RequestGenerator] Random identification value %d", ntohl(request->identification));
 
 	// Set the UDP header checksum based on the initialized values
 	unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));
@@ -95,7 +98,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	data.linkLayerAddress = 0; // TODO maybe change this?
 	data.destinationIPAddress = ntohl(IPAddress(iph->ip_dst).addr());
 	data.careOfAddress = ntohl(request->careOfAddress);
-	data.identification = request->identification;
+	data.identification = ntohl(request->identification);
 	data.originalLifetime = ntohs(request->lifetime);
 	data.remainingLifetime = ntohs(request->lifetime);
 	_pendingRegistrationsData.push_back(data);

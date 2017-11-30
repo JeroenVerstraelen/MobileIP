@@ -109,10 +109,11 @@ void RoutingElement::push(int port, Packet* p){
 				mobilityData.homeAddress = request->homeAddress;
 				mobilityData.careOfAddress = request->careOfAddress;
 				mobilityData.lifetime = ntohs(request->lifetime);
-				mobilityData.replyIdentification = request->identification;
+				mobilityData.replyIdentification = ntohl(request->identification);
+				click_chatter("[RoutingElement] Test value %d" , mobilityData.replyIdentification);
 				IPAddress replyDestination = _updateMobilityBindings(mobilityData);
 
-				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
+				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), ntohl(request->identification), udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
 
 				// Kill the request packet
 				p->kill();
@@ -161,7 +162,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	output(1).push(newPacket);
 }
 
-Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, double id, uint16_t srcPort, uint16_t dstPort, uint16_t reqLifetime){
+Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, uint32_t id, uint16_t srcPort, uint16_t dstPort, uint16_t reqLifetime){
 	//click_chatter("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -198,7 +199,8 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddre
 	if (reqLifetime > registrationLifetime) reply->lifetime = htons(registrationLifetime);
 	reply->homeAddress = homeAddress.addr();
 	reply->homeAgent = homeAgent.addr();
-	reply->identification = Timestamp(id).doubleval(); // TODO
+	click_chatter("[RoutingElement] Reply identification value %d", id);
+	reply->identification = htonl(id);
 
 	// Set the UDP header checksum based on the initialized values
 	// unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationReply));
