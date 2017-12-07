@@ -54,17 +54,18 @@ void RoutingElement::push(int port, Packet* p){
 		//click_chatter("[RoutingElement] ICMP related message");
 		ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
 		if (solicitation->code != 0) { // TODO also add checksum check here
-			p->kill();
-			return;
+			click_chatter("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
 		}
-		if (solicitation->type == 10){
+		else if (ntohs(iph->ip_len) - sizeof(click_ip) % 8 == 0){
+			click_chatter("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
+		}
+		else if (solicitation->type == 10){
 			//click_chatter("[RoutingElement] Received a solicitation and responding to it");
 			// TODO handle solicitation message accordingly
 			_advertiser->respondToSolicitation();
-			p->kill();
-			return;
 		}
-		// output(1).push(p);
+		p->kill();
+		return;
 	}
 
 	// IP in IP related part
@@ -143,8 +144,12 @@ void RoutingElement::push(int port, Packet* p){
 }
 
 void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
-	// click_chatter("[RoutingElement] Encapsulate IPinIP and send to FA");
-	const click_ip* innerIP = p->ip_header(); //TODO dont let decl ip decrease the ttl
+	click_chatter("[RoutingElement] Encapsulate IPinIP and send to FA");
+	click_ip* innerIP = (click_ip *) p->data();
+	innerIP->ip_ttl++;
+	innerIP->ip_sum = 0;
+	innerIP->ip_sum = click_in_cksum((unsigned char *)innerIP, sizeof(click_ip));
+	p->set_ip_header(innerIP, sizeof(click_ip));
 	WritablePacket* newPacket = p->push(sizeof(click_ip)); // Create new packet with place for outer IP header
 	click_ip* outerIP = reinterpret_cast<click_ip *>(newPacket->data());;
 	outerIP->ip_v = 4;
