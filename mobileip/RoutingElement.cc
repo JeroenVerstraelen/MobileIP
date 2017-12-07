@@ -56,7 +56,7 @@ void RoutingElement::push(int port, Packet* p){
 		if (solicitation->code != 0) { // TODO also add checksum check here
 			click_chatter("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
 		}
-		else if (ntohs(iph->ip_len) - sizeof(click_ip) % 8 == 0){
+		else if (ntohs(iph->ip_len) - sizeof(click_ip) % 8 != 0){
 			click_chatter("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
 		}
 		else if (solicitation->type == 10){
