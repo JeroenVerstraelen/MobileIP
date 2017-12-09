@@ -5,6 +5,8 @@
 // Local imports
 #include "Advertiser.hh"
 #include "structs/MobilityBinding.hh"
+#include "structs/ICMPSolicitation.hh"
+
 
 CLICK_DECLS
 /*
@@ -58,6 +60,9 @@ class RoutingElement : public Element {
 		// Create, update or delete MobilityBinding for the MN request
 		// Return the IPAddress to which the reply must be sent
 		IPAddress _updateMobilityBindings(MobilityBinding data);
+
+		// Check if checksum of solicitation is set correctly
+		bool _correctChecksum(ICMPSolicitation*);
 };
 
 CLICK_ENDDECLS

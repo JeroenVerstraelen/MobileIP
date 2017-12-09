@@ -7,7 +7,6 @@
 
 // Local imports
 #include "RoutingElement.hh"
-#include "structs/ICMPSolicitation.hh"
 #include "structs/RegistrationRequest.hh"
 #include "structs/RegistrationReply.hh"
 #include "utils/Configurables.hh"
@@ -53,11 +52,14 @@ void RoutingElement::push(int port, Packet* p){
 	if (iph->ip_p == 1){
 		//click_chatter("[RoutingElement] ICMP related message");
 		ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
-		if (solicitation->code != 0) { // TODO also add checksum check here
+		if (solicitation->code != 0) {
 			click_chatter("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
 		}
 		else if ((ntohs(iph->ip_len) - sizeof(click_ip)) % 8 != 0){
 			click_chatter("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
+		}
+		else if (!_correctChecksum(solicitation)){
+			click_chatter("[RoutingElement] Solicitation message is sent with an invalid checksum");
 		}
 		else if (solicitation->type == 10){
 			//click_chatter("[RoutingElement] Received a solicitation and responding to it");
@@ -244,6 +246,21 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
 	// TODO 2) delete binding if lifetime of mobility binding expires before new valid request
 	if (!isPresent) _mobilityBindings.push_back(data);
 	return IPAddress(data.careOfAddress);
+}
+
+bool RoutingElement::_correctChecksum(ICMPSolicitation* input){
+	WritablePacket* packet = Packet::make(0, 0, sizeof(ICMPSolicitation), 0);
+	memset(packet->data(), 0, packet->length());
+	// ICMP solicitation related part
+	ICMPSolicitation* solicitation = (ICMPSolicitation*) packet->data();
+	solicitation->type = input->type;
+	solicitation->code = input->code;
+	solicitation->checksum = 0x0;
+	solicitation->reserved = input->reserved;
+	solicitation->checksum = click_in_cksum((unsigned char *) solicitation, sizeof(ICMPSolicitation));
+	bool returnValue = (input->checksum == solicitation->checksum);
+	packet->kill();
+	return returnValue;
 }
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)

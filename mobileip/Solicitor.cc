@@ -37,12 +37,12 @@ void Solicitor::_generateSolicitation() {
 	// IP header
 	click_ip *iph = (click_ip *) packet->data();
 	iph->ip_v = 4;
-  iph->ip_hl = sizeof(click_ip) >> 2;
+  	iph->ip_hl = sizeof(click_ip) >> 2;
 	iph->ip_len = htons(packet->length());
 	iph->ip_id = htons(0);
-  iph->ip_p = 1;
+  	iph->ip_p = 1;
 	iph->ip_tos = 0x00;
-  iph->ip_ttl = 1;
+  	iph->ip_ttl = 1;
 	iph->ip_dst = IPAddress("255.255.255.255").in_addr();
 	iph->ip_src = _srcAddress.in_addr();
 	iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
@@ -55,7 +55,7 @@ void Solicitor::_generateSolicitation() {
 	solicitation->checksum = 0x0;
 	solicitation->reserved = htonl(0);
 
-		// Checksum
+	// Checksum
 	solicitation->checksum = click_in_cksum((unsigned char *) solicitation, sizeof(ICMPSolicitation));
 
 	// Sent the solicitation to neighboring interface
