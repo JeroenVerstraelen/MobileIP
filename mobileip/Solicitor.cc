@@ -7,6 +7,9 @@
 // Local imports
 #include "Solicitor.hh"
 #include "structs/ICMPSolicitation.hh"
+#include "utils/HelperFunctions.hh"
+
+#define MAX_SOLICITATION_DELAY 1
 
 CLICK_DECLS
 Solicitor::Solicitor():_solicitationTimer(this){}
@@ -17,17 +20,23 @@ int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_srcAddress, cpEnd) < 0){
 			return -1;
 	}
+ 	// Solicitation timer randomization uses IPAddress as seed
+	srand (_srcAddress.addr());
 	_solicitationTimer.initialize(this);
-	_solicitationTimer.schedule_after_sec(3); // TODO fix the static value of 3
+	unsigned int delay = generateRandomNumber(0, MAX_SOLICITATION_DELAY*1000);
+	_solicitationTimer.schedule_after_msec(delay);
 	return 0;
 }
 
 void Solicitor::run_timer(Timer* t){
-	_generateSolicitation();
+	if (t == &_solicitationTimer) {
+		// Solicitation sent once
+		generateSolicitation();
+	}
 }
 
-void Solicitor::_generateSolicitation() {
-	//click_chatter("[Solicitor] Sending ICMP router solicitation");
+void Solicitor::generateSolicitation() {
+	LOG("[Solicitor] Sending ICMP router solicitation");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4; // TODO check why necessary to add 4
 	int packetsize = sizeof(click_ip) + sizeof(ICMPSolicitation);

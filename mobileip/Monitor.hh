@@ -4,7 +4,9 @@
 
 // Local imports
 #include "RequestGenerator.hh"
+#include "Solicitor.hh"
 #include "structs/ICMPRouterEntry.hh"
+#include <map>
 
 CLICK_DECLS
 
@@ -22,19 +24,22 @@ class Monitor : public Element {
 		const char *port_count() const	{ return "1/1"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
-    void push(int, Packet* p);
+    		void push(int, Packet* p);
 		void run_timer(Timer* t);
 
 	private:
 		// Vector of possible agents
-		Vector<ICMPRouterEntry> _availableRouters;
+		std::map<Timer*, ICMPRouterEntry> _availableRouters;
 
 		// The IP address of the MN
 		IPAddress _ipAddress;
-		String _homeNetwork;
-
+		// The IP address of the home agent, discovered using ICMP
+		//IPAddress _homeAgent = NULL;
 		// The request generator of the MN
 		RequestGenerator* _reqGenerator;
+
+		// The solicitation generator of the MN
+		Solicitor* _solicitor;
 
 		// TODO temp boolean value which keeps track if MN is at home
 		bool _atHome;

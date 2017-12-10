@@ -2,6 +2,7 @@
 #pragma once
 
 #define PRINTDEBUG true
+#define PRINTERROR true
 
 const IPAddress broadCast = IPAddress("255.255.255.255");
 

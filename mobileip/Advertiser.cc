@@ -29,22 +29,29 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 int Advertiser::initialize(ErrorHandler *) {
-	srand (_routerAddressPrivate.addr()); // Initialize rand used for the advertisement timer
-	_advertisementTimer.initialize(this); // Initialize timer object
-	_advertisementTimer.schedule_after_msec(500); // Set the timer to fire after configuration is done
+	// Initialize rand used for the advertisement timer
+	srand (_routerAddressPrivate.addr());
+	// Initialize timer object
+	_advertisementTimer.initialize(this);
+	// Set the timer to fire after configuration is done
+	_advertisementTimer.schedule_after_msec(500);
 	return 0;
 }
 
 void Advertiser::run_timer(Timer* t){
 	if (t == &_advertisementTimer){
 		// Reschedule the timer
-		_advertisementTimer.clear();
 		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, MaxAdvertisementInterval*1000);
+		// Router advertisement condition
 		if (_advertisementCounter <= MAX_INITIAL_ADVERTISEMENTS) {
 			if (interval > MAX_INITIAL_ADVERT_INTERVAL*1000) 
 				interval = MAX_INITIAL_ADVERT_INTERVAL*1000;
 		}
-		_advertisementTimer.schedule_after_msec(interval);
+		// Agent advertisement condition
+		if (interval > (AdvertisementLifetime/3)*1000) 
+			interval = (AdvertisementLifetime/3)*1000;
+		LOG("[Advertiser] interval = %d", interval);
+		_advertisementTimer.reschedule_after_msec(interval);
 		// Send advertisement
 		_generateAdvertisement();
 	}
@@ -52,7 +59,6 @@ void Advertiser::run_timer(Timer* t){
 
 void Advertiser::respondToSolicitation(){
 	LOG("[Advertiser] Responding to solicitation");
-	_advertisementTimer.clear();
 	unsigned int delay = generateRandomNumber(0, MAX_RESPONSE_DELAY*1000);
 	// LOG("[Advertiser] Delay is %d", delay);
 	_advertisementTimer.reschedule_after_msec(delay);

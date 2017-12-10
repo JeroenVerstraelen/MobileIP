@@ -106,16 +106,16 @@ void RoutingElement::_solicitationResponse(Packet* p) {
  	unsigned icmp_len = p->length() - p->transport_header_offset();
 	unsigned csum = click_in_cksum((unsigned char *)icmph, icmp_len) & 0xFFFF;
 	if (solicitation->code != 0) {
-		LOG("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
+		LOGERROR("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
 	}
 	else if (icmp_len % 8 != 0){
-		LOG("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
+		LOGERROR("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
 	}
 	else if (csum != 0){
-		LOG("[RoutingElement] Solicitation message is sent with an invalid checksum");
+		LOGERROR("[RoutingElement] Solicitation message is sent with an invalid checksum");
 	}
 	else if (solicitation->type == 10){
-		LOG("[RoutingElement] Received a solicitation and responding to it");
+		LOGERROR("[RoutingElement] Received a solicitation and responding to it");
 		// TODO handle solicitation message accordingly
 		_advertiser->respondToSolicitation();
 	}

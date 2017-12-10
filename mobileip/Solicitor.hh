@@ -17,7 +17,7 @@ class Solicitor : public Element {
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 
-		void _generateSolicitation();
+		void generateSolicitation();
 		void run_timer(Timer* t);
 
 	private:

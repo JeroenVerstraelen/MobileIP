@@ -4,5 +4,4 @@
 struct ICMPRouterEntry {
 	uint32_t routerAddress;
 	uint32_t preferenceLevel;
-	Timer timer;
 };

@@ -7,6 +7,11 @@
 #else
 	#define LOG(...) 0
 #endif
+#if PRINTERROR
+	#define LOGERROR(msg, ...) click_chatter("\033[1;31m" msg "\033[0m", ##__VA_ARGS__) 
+#else
+	#define LOGERROR(...) 0
+#endif
 
 // Generates a random number between a and b
 inline unsigned int generateRandomNumber(unsigned int a, unsigned int b){
