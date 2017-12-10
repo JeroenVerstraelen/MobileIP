@@ -5,7 +5,7 @@
 CLICK_DECLS
 
 /*
- *	Click element that will generate solicitations messages at the MN
+ * Click element that generates solicitation messages at the mobile node.
 */
 class Solicitor : public Element {
 	public:
@@ -17,14 +17,13 @@ class Solicitor : public Element {
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
 
-    void _generateSolicitation();
-    void run_timer(Timer* t);
+		void _generateSolicitation();
+		void run_timer(Timer* t);
 
 	private:
 		// The source address
-    IPAddress _srcAddress;
-
-    Timer _solicitationTimer;
+		IPAddress _srcAddress;
+		Timer _solicitationTimer;
 };
 
 CLICK_ENDDECLS

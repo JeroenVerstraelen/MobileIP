@@ -1,5 +1,12 @@
 // This file contains certain helper functions used in the project
 #include <stdint.h>
+#include "Configurables.hh"
+
+#if PRINTDEBUG
+	#define LOG(...) click_chatter(__VA_ARGS__) 
+#else
+	#define LOG(...) 0
+#endif
 
 // Generates a random number between a and b
 inline unsigned int generateRandomNumber(unsigned int a, unsigned int b){

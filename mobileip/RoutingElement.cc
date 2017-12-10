@@ -26,127 +26,166 @@ int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 	return 0;
 }
 
+/*
+ * Port 0: ICMP messages
+ * Port 1: Messages coming from the corresponding node.
+ */
 void RoutingElement::push(int port, Packet* p){
-	// click_chatter("[RoutingElement::push %s] Port: %d", _agentAddressPublic.unparse().c_str(), port);
+	LOG("[RoutingElement::push %s] Port: %d", _agentAddressPublic.unparse().c_str(), port);
 	click_ip* iph = (click_ip*) p->data();
-	IPAddress srcIP = iph->ip_src;
-	IPAddress dstAddress = iph->ip_dst;
-	// Don't manipulate the packet coming from the CN
+
+	// Message from corresponding node
 	if (port == 1){
-		//click_chatter("[RoutingElement] Message from Corresponding Node");
+		// Don't manipulate the packet
+		LOG("[RoutingElement] Message from Corresponding Node");
 		if (_mobilityBindings.empty()) {
-			//click_chatter("[RoutingElement] Mobile Node is at home -> Sending directly to local network");
-			// If all MN's are @ home just push it to the local network
+			// Mobile node at home
+			LOG("[RoutingElement] Mobile Node is at home -> Sending directly to local network");
+			// sending to local network.
 			output(0).push(p);
 		} else {
-			// If MN is away IP in IP encapsulate and send it to the public network
-			//click_chatter("[RoutingElement] Mobile Node is away -> Sending IpinIP encap");
+			// Mobile node is away
+			LOG("[RoutingElement] Mobile Node is away -> Sending IpinIP encap");
+			IPAddress dstAddress = iph->ip_dst;
 			IPAddress tunnelEndpoint = _findCareOfAddress(dstAddress);
-			// click_chatter("Tunnel endpoint %s", tunnelEndpoint.unparse().c_str());
+			LOG("Tunnel endpoint %s", tunnelEndpoint.unparse().c_str());
+			// IP in IP encapsulate and send it to the public network
 			_encapIPinIP(p, tunnelEndpoint);
 		}
 		return;
 	}
-	// click_chatter("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
-	// ICMP related part
-	if (iph->ip_p == 1){
-		//click_chatter("[RoutingElement] ICMP related message");
-		ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
-		if (solicitation->code != 0) {
-			click_chatter("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
-		}
-		else if ((ntohs(iph->ip_len) - sizeof(click_ip)) % 8 != 0){
-			click_chatter("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
-		}
-		else if (!_correctChecksum(solicitation)){
-			click_chatter("[RoutingElement] Solicitation message is sent with an invalid checksum");
-		}
-		else if (solicitation->type == 10){
-			//click_chatter("[RoutingElement] Received a solicitation and responding to it");
-			// TODO handle solicitation message accordingly
-			_advertiser->respondToSolicitation();
-		}
-		p->kill();
+
+	// ICMP 
+	LOG("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
+	switch (iph->ip_p) {
+		case 1: 
+			// Solicitation message
+			{
+				_solicitationResponse(p);
+				p->kill();			
+				return;
+			}
+		case 4:
+			// IP in IP
+			{
+				LOG("[RoutingElement] Handling decapsulation, reached tunnel endpoint");
+				// Decpasulate packet
+				p->pull(sizeof(click_ip));
+				// Forward to mobile node.
+				click_ip* ipHeader = (click_ip*) p->data();
+				p->set_dst_ip_anno(IPAddress(ipHeader->ip_dst));
+				output(0).push(p);
+			}
+		case 17: 
+			// Mobile IP Registration
+			{
+				click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
+				uint16_t destinationPort = ntohs(udpHeader->uh_dport);
+				uint16_t sourcePort = ntohs(udpHeader-> uh_sport);
+				if (destinationPort == 434) {
+					// Registration request
+					_registrationRequestResponse(p);
+				}
+				else if (sourcePort == 434) {
+					// Registration reply
+					_registrationReplyResponse(p);
+					output(0).push(p);
+				}
+				return;
+			}
+		default: 
+			output(2).push(p);
+	}
+}
+
+void RoutingElement::_solicitationResponse(Packet* p) {
+	LOG("[RoutingElement] ICMP related message");
+	click_ip* iph = (click_ip*) p->data();
+	ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
+ 	const click_icmp *icmph = p->icmp_header();
+ 	unsigned icmp_len = p->length() - p->transport_header_offset();
+	unsigned csum = click_in_cksum((unsigned char *)icmph, icmp_len) & 0xFFFF;
+	if (solicitation->code != 0) {
+		LOG("[RoutingElement] Solicitation message is sent with code %d but it should be 0", solicitation->code);
+	}
+	else if (icmp_len % 8 != 0){
+		LOG("[RoutingElement] Solicitation message is sent with length %d which is not 8 or more octets", ntohs(iph->ip_len) - sizeof(click_ip));
+	}
+	else if (csum != 0){
+		LOG("[RoutingElement] Solicitation message is sent with an invalid checksum");
+	}
+	else if (solicitation->type == 10){
+		LOG("[RoutingElement] Received a solicitation and responding to it");
+		// TODO handle solicitation message accordingly
+		_advertiser->respondToSolicitation();
+	}
+	p->kill();
+	return;
+}
+
+// Relay on output port 1
+// Reply on port 3 private/4 public.
+void RoutingElement::_registrationRequestResponse(Packet* p) {
+	click_ip* iph = (click_ip*) p->data();
+	click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
+	LOG("[RoutingElement] Received a request message at agent side");
+	RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+	// If the request is for another agent
+	if (request->homeAgent != _agentAddressPublic.addr()){
+		// Relay the registration request to port 1
+		LOG("[RoutingElement] Received a request not for the agent itself, relaying it");
+		iph->ip_src = _agentAddressPublic.in_addr();
+		iph->ip_dst = IPAddress(request->homeAgent).in_addr();
+		iph->ip_len = htons(p->length());
+		p->set_dst_ip_anno(IPAddress(iph->ip_dst));
+		// Set the UDP header checksum based on the initialized values
+		//unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));
+		//udpHeader->uh_sum = click_in_cksum_pseudohdr(csum, iph, sizeof(click_udp) + sizeof(RegistrationRequest));
+		output(1).push(p);
 		return;
 	}
+	// If the request is for the agent itself
+	if (request->homeAgent == _agentAddressPublic.addr()){
+		// Handle the registration request 
+		LOG("[RoutingElement] Received a request for the agent itself, don't relay");
+		RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
-	// IP in IP related part
-	// Decapsulate packet here and forward to the MN
-	if (iph->ip_p == 4){
-		//click_chatter("[RoutingElement] Handling decapsulation, reached tunnel endpoint");
-		p->pull(sizeof(click_ip));
-		click_ip* ipHeader = (click_ip*)p->data();
-		p->set_dst_ip_anno(IPAddress(ipHeader->ip_dst));
-		output(0).push(p);
-	}
+		// Create, update or delete MobilityBinding for the MN request
+		MobilityBinding mobilityData;
+		mobilityData.homeAddress = request->homeAddress;
+		mobilityData.careOfAddress = request->careOfAddress;
+		mobilityData.lifetime = ntohs(request->lifetime);
+		mobilityData.replyIdentification = ntohl(request->identification);
+		LOG("[RoutingElement] Test value %d" , mobilityData.replyIdentification);
+		IPAddress replyDestination = _updateMobilityBindings(mobilityData);
 
-	// Registration related part (UDP message)
-	if (iph->ip_p == 17){
-		//const click_udp* udpHeader = p->udp_header();
-		click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
-		uint16_t destinationPort = ntohs(udpHeader->uh_dport);
-		uint16_t sourcePort = ntohs(udpHeader-> uh_sport);
-		if (destinationPort == 434){
-			//click_chatter("[RoutingElement] Received a request message at agent side");
-			RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-			// if the request is for another agent ==> relay message
-			if (request->homeAgent != _agentAddressPublic.addr()){
-				//click_chatter("[RoutingElement] Received a request not for the agent itself, relaying it");
-				iph->ip_src = _agentAddressPublic.in_addr();
-				iph->ip_dst = IPAddress(request->homeAgent).in_addr();
-				iph->ip_len = htons(p->length());
-				p->set_dst_ip_anno(IPAddress(iph->ip_dst));
-				// Set the UDP header checksum based on the initialized values
-				//unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));
-				//udpHeader->uh_sum = click_in_cksum_pseudohdr(csum, iph, sizeof(click_udp) + sizeof(RegistrationRequest));
-				output(1).push(p);
-				return;
-			}
-			// if the request is for the agent itself ==> handle the message
-			if (request->homeAgent == _agentAddressPublic.addr()){
-				//click_chatter("[RoutingElement] Received a request for the agent itself, don't relay");
-				RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+		Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), ntohl(request->identification), udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
 
-				// Create, update or delete MobilityBinding for the MN request
-				MobilityBinding mobilityData;
-				mobilityData.homeAddress = request->homeAddress;
-				mobilityData.careOfAddress = request->careOfAddress;
-				mobilityData.lifetime = ntohs(request->lifetime);
-				mobilityData.replyIdentification = ntohl(request->identification);
-				click_chatter("[RoutingElement] Test value %d" , mobilityData.replyIdentification);
-				IPAddress replyDestination = _updateMobilityBindings(mobilityData);
-
-				Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), ntohl(request->identification), udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
-
-				// Kill the request packet
-				p->kill();
-				// Push reply
-				if (sameNetwork(replyPacket->dst_ip_anno(), _agentAddressPrivate)){
-					// click_chatter("[RoutingElement] Pushing reply to local network");
-					output(4).push(replyPacket);
-					return;
-				}
-				output(3).push(replyPacket);
-				return;
-			}
-		}
-		if (sourcePort == 434){
-			//click_chatter("[RoutingElement] Received a reply message at agent side, forwarding to MN");
-			RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-			iph->ip_src = _agentAddressPrivate.in_addr();
-			iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
-			iph->ip_len = htons(p->length());
-			p->set_dst_ip_anno(IPAddress(iph->ip_dst));
-			output(0).push(p);
+		// Kill the request packet
+		p->kill();
+		// Push reply
+		if (sameNetwork(replyPacket->dst_ip_anno(), _agentAddressPrivate)){
+			// LOG("[RoutingElement] Pushing reply to local network");
+			output(4).push(replyPacket);
 			return;
 		}
-
+		output(3).push(replyPacket);
+		return;
 	}
-	output(2).push(p);
+}
+
+void RoutingElement::_registrationReplyResponse(Packet* p) {
+	click_ip* iph = (click_ip*) p->data();
+	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
+	RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+	iph->ip_src = _agentAddressPrivate.in_addr();
+	iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
+	iph->ip_len = htons(p->length());
+	p->set_dst_ip_anno(IPAddress(iph->ip_dst));
 }
 
 void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
-	click_chatter("[RoutingElement] Encapsulate IPinIP and send to FA");
+	LOG("[RoutingElement] Encapsulate IPinIP and send to FA");
 	click_ip* innerIP = (click_ip *) p->data();
 	innerIP->ip_ttl++;
 	innerIP->ip_sum = 0;
@@ -170,7 +209,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 }
 
 Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, uint32_t id, uint16_t srcPort, uint16_t dstPort, uint16_t reqLifetime){
-	//click_chatter("[RoutingElement] Reply to MobileIP request message");
+	LOG("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationReply);
@@ -206,7 +245,7 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddre
 	if (reqLifetime > registrationLifetime) reply->lifetime = htons(registrationLifetime);
 	reply->homeAddress = homeAddress.addr();
 	reply->homeAgent = homeAgent.addr();
-	click_chatter("[RoutingElement] Reply identification value %d", id);
+	LOG("[RoutingElement] Reply identification value %d", id);
 	reply->identification = htonl(id);
 
 	// Set the UDP header checksum based on the initialized values
@@ -229,12 +268,12 @@ IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
 }
 
 IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
-	//click_chatter("[RoutingElement] Update mobility bindings size = %d", _mobilityBindings.size());
+	LOG("[RoutingElement] Update mobility bindings size = %d", _mobilityBindings.size());
 	bool isPresent = false;
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
 		if (data.homeAddress == it->homeAddress){
 			isPresent = true;
-			// click_chatter("[RoutingElement] Binding already present in vector");
+			// LOG("[RoutingElement] Binding already present in vector");
 			if (data.careOfAddress == it->careOfAddress){
 				// If MN is back home just return his home address to forward the reply to
 				_mobilityBindings.erase(it);
@@ -246,21 +285,6 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
 	// TODO 2) delete binding if lifetime of mobility binding expires before new valid request
 	if (!isPresent) _mobilityBindings.push_back(data);
 	return IPAddress(data.careOfAddress);
-}
-
-bool RoutingElement::_correctChecksum(ICMPSolicitation* input){
-	WritablePacket* packet = Packet::make(0, 0, sizeof(ICMPSolicitation), 0);
-	memset(packet->data(), 0, packet->length());
-	// ICMP solicitation related part
-	ICMPSolicitation* solicitation = (ICMPSolicitation*) packet->data();
-	solicitation->type = input->type;
-	solicitation->code = input->code;
-	solicitation->checksum = 0x0;
-	solicitation->reserved = input->reserved;
-	solicitation->checksum = click_in_cksum((unsigned char *) solicitation, sizeof(ICMPSolicitation));
-	bool returnValue = (input->checksum == solicitation->checksum);
-	packet->kill();
-	return returnValue;
 }
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)

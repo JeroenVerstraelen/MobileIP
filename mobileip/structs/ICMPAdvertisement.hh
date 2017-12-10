@@ -1,6 +1,6 @@
 // This file contains the struct for an ICMP advertisement message
 // (sent by an agent to let neigboring interfaces know it's presence)
-struct ICMPAdvertisement{
+struct ICMPAdvertisement {
     uint8_t type;
     uint8_t code;
     uint16_t checksum;

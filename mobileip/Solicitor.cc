@@ -17,8 +17,8 @@ int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_srcAddress, cpEnd) < 0){
 			return -1;
 	}
-  _solicitationTimer.initialize(this);
-  _solicitationTimer.schedule_after_sec(3); // TODO fix the static value of 3
+	_solicitationTimer.initialize(this);
+	_solicitationTimer.schedule_after_sec(3); // TODO fix the static value of 3
 	return 0;
 }
 

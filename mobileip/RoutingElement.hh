@@ -47,6 +47,15 @@ class RoutingElement : public Element {
 		// Reference to the advertiser element
 		Advertiser* _advertiser;
 
+		// Respond to an ICMP solicition message
+		void _solicitationResponse(Packet* p);
+
+		// Respond to a Mobile IP registration request. 
+		void _registrationRequestResponse(Packet* p);
+
+		// Respond to a Mobile IP registration reply.
+		void _registrationReplyResponse(Packet* p);
+
 		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
 		void _encapIPinIP(Packet* p, IPAddress coa);
 
@@ -60,9 +69,6 @@ class RoutingElement : public Element {
 		// Create, update or delete MobilityBinding for the MN request
 		// Return the IPAddress to which the reply must be sent
 		IPAddress _updateMobilityBindings(MobilityBinding data);
-
-		// Check if checksum of solicitation is set correctly
-		bool _correctChecksum(ICMPSolicitation*);
 };
 
 CLICK_ENDDECLS

@@ -11,6 +11,10 @@
 #include "utils/Configurables.hh"
 #include "utils/HelperFunctions.hh"
 
+#define MAX_INITIAL_ADVERT_INTERVAL 16
+#define MAX_INITIAL_ADVERTISEMENTS 3
+#define MAX_RESPONSE_DELAY 2
+
 CLICK_DECLS
 Advertiser::Advertiser(): _advertisementCounter(0), _advertisementTimer(this){}
 
@@ -25,28 +29,37 @@ int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 int Advertiser::initialize(ErrorHandler *) {
-    _advertisementTimer.initialize(this);   		// Initialize timer object
-    _advertisementTimer.schedule_after_msec(500);   // Set the timer to fire after configuration is done (1 second)
-    return 0;
+	srand (_routerAddressPrivate.addr()); // Initialize rand used for the advertisement timer
+	_advertisementTimer.initialize(this); // Initialize timer object
+	_advertisementTimer.schedule_after_msec(500); // Set the timer to fire after configuration is done
+	return 0;
 }
 
 void Advertiser::run_timer(Timer* t){
 	if (t == &_advertisementTimer){
+		// Reschedule the timer
+		_advertisementTimer.clear();
+		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, MaxAdvertisementInterval*1000);
+		if (_advertisementCounter <= MAX_INITIAL_ADVERTISEMENTS) {
+			if (interval > MAX_INITIAL_ADVERT_INTERVAL*1000) 
+				interval = MAX_INITIAL_ADVERT_INTERVAL*1000;
+		}
+		_advertisementTimer.schedule_after_msec(interval);
+		// Send advertisement
 		_generateAdvertisement();
-		t->reschedule_after_msec((advertisementLifetimeICMP/3)*1000); // TODO add slightly randomization here see rfc 1256
 	}
 }
 
 void Advertiser::respondToSolicitation(){
-	//click_chatter("[Advertiser] Responding to solicitation");
+	LOG("[Advertiser] Responding to solicitation");
 	_advertisementTimer.clear();
-	unsigned int delay = generateRandomNumber(0, maxResponseDelay*1000);
-	// click_chatter("[Advertiser] Delay is %d", delay);
+	unsigned int delay = generateRandomNumber(0, MAX_RESPONSE_DELAY*1000);
+	// LOG("[Advertiser] Delay is %d", delay);
 	_advertisementTimer.reschedule_after_msec(delay);
 }
 
 void Advertiser::_generateAdvertisement() {
-	//click_chatter("[Advertiser] Sending ICMP router advertisement");
+	LOG("[Advertiser] Sending ICMP router advertisement");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension);
@@ -56,25 +69,26 @@ void Advertiser::_generateAdvertisement() {
 	// IP header
 	click_ip *iph = (click_ip *) packet->data();
 	iph->ip_v = 4;
-  iph->ip_hl = sizeof(click_ip) >> 2;
+  	iph->ip_hl = sizeof(click_ip) >> 2;
 	iph->ip_len = htons(packet->length());
 	iph->ip_id = htons(_advertisementCounter);
-  iph->ip_p = 1;
+  	iph->ip_p = 1;
 	iph->ip_tos = 0x00;
-  iph->ip_ttl = 1;
-	iph->ip_dst = IPAddress("255.255.255.255").in_addr();
+  	iph->ip_ttl = 1;
+	iph->ip_dst = AdvertisementAddress.in_addr();
 	iph->ip_src = _routerAddressPrivate.in_addr();
 	iph->ip_sum = click_in_cksum((unsigned char *)iph, sizeof(click_ip));
-	packet->set_dst_ip_anno(IPAddress("255.255.255.255"));
+	packet->set_dst_ip_anno(AdvertisementAddress);
 
-	// ICMP advertisement related part
+	// ICMP advertisement
 	ICMPAdvertisement* advertisement = (ICMPAdvertisement*) (packet->data() + sizeof(click_ip));
 	advertisement->type = 9;
 	advertisement->code = 0;
 	advertisement->checksum = 0x0;
+	// Number of router addresses advertised
 	advertisement->numAddrs = 1;
 	advertisement->addrEntrySize = 2;
-	advertisement->lifetime = htons(advertisementLifetimeICMP);
+	advertisement->lifetime = htons(AdvertisementLifetime);
 	advertisement->routerAddress = _routerAddressPublic.addr();
 	advertisement->preferenceLevel = htonl(0x1);
 
@@ -99,7 +113,7 @@ void Advertiser::_generateAdvertisement() {
 	extension->reserved = 0;
 	extension->careOfAddress = _routerAddressPublic.addr();
 
-		// Checksum
+	// Checksum
 	advertisement->checksum = click_in_cksum((unsigned char *) advertisement, sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension));
 
 	// Sent the advertisement to neighboring interface
