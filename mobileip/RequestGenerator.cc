@@ -5,6 +5,7 @@
 #include <clicknet/udp.h>
 #include <clicknet/ip.h>
 #include <limits.h>
+#include <time.h>
 
 // Local imports
 #include "RequestGenerator.hh"
@@ -86,8 +87,8 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	request->careOfAddress = coa.addr();
 	if (coa == _homeAgent) request->careOfAddress = _currentCoa.addr();
 	_currentCoa = IPAddress(request->careOfAddress);
-	request->identification = htonl(generateRandomNumber(0, UINT_MAX));
-	click_chatter("[RequestGenerator] Random identification value %d", ntohl(request->identification));
+	request->identification = (uint64_t) time(NULL);
+	click_chatter("[RequestGenerator] Random identification value %d", request->identification);
 
 	// Set the UDP header checksum based on the initialized values
 	unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));

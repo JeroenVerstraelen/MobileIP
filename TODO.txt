@@ -1,10 +1,13 @@
 Finale inzending van Mobile IP:
     -) Timing verder finaliseren
+    -) Registraties vervallen zeer snel????!
     -) Mobility bindings nog verder uitwerken
     -) Error handling, foutieve codes via de handlers van de referentie implementatie
-    -) Identification field registration request and reply nakijken
     -) Mac addressen icmp reply messages nakijken
     -) Move detection door gebruik ICMP solicitations
     -) UDP checksums nakijken voor het public network
     -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
     -) ICMP advertisement configurables default values clashen met condities (MAX_INITIAL_ADVERT_INTERVAL, AdvertisementLifetime te klein tegenover MinAdvertisementInterval)
+    -) Optioneel laat identificatie waarde gelijk zijn aan de huidige tijd (zie wireshark)
+    -) Vraag hoe dat we de codes op pag 37-38 moeten verifieren? met handlers?
+

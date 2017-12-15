@@ -6,6 +6,7 @@
 #include "Advertiser.hh"
 #include "structs/MobilityBinding.hh"
 #include "structs/ICMPSolicitation.hh"
+#include "structs/RegistrationRequest.hh"
 
 
 CLICK_DECLS
@@ -50,17 +51,17 @@ class RoutingElement : public Element {
 		// Respond to an ICMP solicition message
 		void _solicitationResponse(Packet* p);
 
-		// Respond to a Mobile IP registration request. 
+		// Respond to a Mobile IP registration request.
 		void _registrationRequestResponse(Packet* p);
 
-		// Respond to a Mobile IP registration reply.
-		void _registrationReplyResponse(Packet* p);
+		// Relay the Mobile IP registration reply to the MN.
+		void _registrationReplyRelay(Packet* p);
 
 		// Encapsulate the incoming IP packet in an outer IP header according RFC2003
 		void _encapIPinIP(Packet* p, IPAddress coa);
 
 		//  Generate a reply based on a specific request
-		Packet* _generateReply(IPAddress, IPAddress, IPAddress, uint32_t, uint16_t, uint16_t, uint16_t);
+		Packet* _generateReply(IPAddress, uint16_t, uint16_t, RegistrationRequest*);
 
 		// Find the care of address for the mobile node which is away
 		// This information is stored in the mobilitybindings attribute
@@ -69,6 +70,11 @@ class RoutingElement : public Element {
 		// Create, update or delete MobilityBinding for the MN request
 		// Return the IPAddress to which the reply must be sent
 		IPAddress _updateMobilityBindings(MobilityBinding data);
+
+		// Check request and return various codes for the reply
+		// Code 0 indicates that request was valid
+		// For other codes we refer to RFC5944
+		uint8_t _checkRequest(RegistrationRequest*);
 };
 
 CLICK_ENDDECLS

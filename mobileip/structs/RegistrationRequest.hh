@@ -15,6 +15,5 @@ struct RegistrationRequest{
     uint32_t homeAddress;
     uint32_t homeAgent;
     uint32_t careOfAddress;
-    uint32_t identification;
-	uint32_t filling; // TODO maybe fix this
+    uint64_t identification;
 };

@@ -7,7 +7,6 @@
 
 // Local imports
 #include "RoutingElement.hh"
-#include "structs/RegistrationRequest.hh"
 #include "structs/RegistrationReply.hh"
 #include "utils/Configurables.hh"
 #include "utils/HelperFunctions.hh"
@@ -55,14 +54,14 @@ void RoutingElement::push(int port, Packet* p){
 		return;
 	}
 
-	// ICMP 
+	// ICMP
 	LOG("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
 	switch (iph->ip_p) {
-		case 1: 
+		case 1:
 			// Solicitation message
 			{
 				_solicitationResponse(p);
-				p->kill();			
+				p->kill();
 				return;
 			}
 		case 4:
@@ -76,7 +75,7 @@ void RoutingElement::push(int port, Packet* p){
 				p->set_dst_ip_anno(IPAddress(ipHeader->ip_dst));
 				output(0).push(p);
 			}
-		case 17: 
+		case 17:
 			// Mobile IP Registration
 			{
 				click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
@@ -87,13 +86,13 @@ void RoutingElement::push(int port, Packet* p){
 					_registrationRequestResponse(p);
 				}
 				else if (sourcePort == 434) {
-					// Registration reply
-					_registrationReplyResponse(p);
+					// Registration reply relayed to the mobile node
+					_registrationReplyRelay(p);
 					output(0).push(p);
 				}
 				return;
 			}
-		default: 
+		default:
 			output(2).push(p);
 	}
 }
@@ -144,9 +143,9 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		output(1).push(p);
 		return;
 	}
-	// If the request is for the agent itself
-	if (request->homeAgent == _agentAddressPublic.addr()){
-		// Handle the registration request 
+	// If the request is for the agent itself or 255.255.255.255
+	if (request->homeAgent == _agentAddressPublic.addr() || request->homeAgent == broadCast.addr()){
+		// Handle the registration request
 		LOG("[RoutingElement] Received a request for the agent itself, don't relay");
 		RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
@@ -155,11 +154,12 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		mobilityData.homeAddress = request->homeAddress;
 		mobilityData.careOfAddress = request->careOfAddress;
 		mobilityData.lifetime = ntohs(request->lifetime);
-		mobilityData.replyIdentification = ntohl(request->identification);
-		LOG("[RoutingElement] Test value %d" , mobilityData.replyIdentification);
+		mobilityData.replyIdentification = request->identification;
+		LOG("[RoutingElement] Identification value of request is %d" , mobilityData.replyIdentification);
 		IPAddress replyDestination = _updateMobilityBindings(mobilityData);
 
-		Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), ntohl(request->identification), udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
+		// Packet* replyPacket = _generateReply(replyDestination, IPAddress(request->homeAddress), IPAddress(request->homeAgent), request->identification, udpHeader->uh_dport, udpHeader->uh_sport, ntohs(request->lifetime));
+		Packet* replyPacket = _generateReply(replyDestination, udpHeader->uh_dport, udpHeader->uh_sport, request);
 
 		// Kill the request packet
 		p->kill();
@@ -174,7 +174,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 	}
 }
 
-void RoutingElement::_registrationReplyResponse(Packet* p) {
+void RoutingElement::_registrationReplyRelay(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
 	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
 	RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
@@ -208,7 +208,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	output(1).push(newPacket);
 }
 
-Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddress, IPAddress homeAgent, uint32_t id, uint16_t srcPort, uint16_t dstPort, uint16_t reqLifetime){
+Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, uint16_t dstPort, RegistrationRequest* request){
 	LOG("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
@@ -240,13 +240,13 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, IPAddress homeAddre
 
 	RegistrationReply* reply = (RegistrationReply*) (packet->data() + sizeof(click_ip) + sizeof(click_udp));
 	reply->type = 3;
-	reply->code = 0;
-	reply->lifetime = htons(reqLifetime);
-	if (reqLifetime > registrationLifetime) reply->lifetime = htons(registrationLifetime);
-	reply->homeAddress = homeAddress.addr();
-	reply->homeAgent = homeAgent.addr();
-	LOG("[RoutingElement] Reply identification value %d", id);
-	reply->identification = htonl(id);
+	reply->code = _checkRequest(request);
+	reply->lifetime = request->lifetime;
+	if (ntohs(request->lifetime) > registrationLifetime) reply->lifetime = htons(registrationLifetime);
+	reply->homeAddress = IPAddress(request->homeAddress).addr();
+	reply->homeAgent = IPAddress(request->homeAgent).addr();
+	LOG("[RoutingElement] Reply identification value %d", request->identification);
+	reply->identification = request->identification;
 
 	// Set the UDP header checksum based on the initialized values
 	// unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationReply));
@@ -286,5 +286,25 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
 	if (!isPresent) _mobilityBindings.push_back(data);
 	return IPAddress(data.careOfAddress);
 }
+
+uint8_t RoutingElement::_checkRequest(RegistrationRequest* request){
+	// In our annotated version of RFC5944 there is no need to support
+	// a MN with a colocated care of address
+	// so return a reply with code 128
+	if (request->D == 1) return 128;
+
+	// If the x and S bit are not 0 ==> poorly formed request
+	if (request->x != 0 || request->S != 0) return 134;
+
+	// If the home agent address 255.255.255.255
+	// return code 136 (Unknown home agent address)
+	if (request->homeAgent == broadCast.addr()) return 136;
+
+	// TODO check if correct to only allow 1 as reply code
+	// Code 1 means that the registration was correct
+	// but there is no support for simultaneous bindings
+	return 1;
+}
+
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)
