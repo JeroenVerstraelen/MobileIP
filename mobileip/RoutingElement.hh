@@ -1,13 +1,13 @@
 #ifndef CLICK_ROUTINGELEMENT_HH
 #define CLICK_ROUTINGELEMENT_HH
 #include <click/element.hh>
+#include <click/timer.hh>
 
 // Local imports
 #include "Advertiser.hh"
 #include "structs/MobilityBinding.hh"
 #include "structs/ICMPSolicitation.hh"
 #include "structs/RegistrationRequest.hh"
-
 
 CLICK_DECLS
 /*
@@ -21,8 +21,6 @@ CLICK_DECLS
  * 	Output 0 ==> packets to private network
  *	Output 1 ==> packets to the public network
  * 	Output 2 ==> packets to the agent itself
- *  Output 3 ==> reply to public network without setting UDP checksum
- *	Output 4 ==> reply to private network without setting UDP checksum
 */
 class RoutingElement : public Element {
 	public:
@@ -30,12 +28,17 @@ class RoutingElement : public Element {
 		~RoutingElement();
 
 		const char *class_name() const	{ return "RoutingElement"; }
-		const char *port_count() const	{ return "2/5"; }
+		const char *port_count() const	{ return "2/3"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
+		int initialize(ErrorHandler *);
+		void run_timer(Timer* t);
 		void push(int, Packet* p);
 
 	private:
+		// Timer which keeps the mobility bindings up to date
+		Timer _mobilityTimer;
+
 		// Public IPAddress of the agent
 		IPAddress _agentAddressPublic;
 
@@ -44,6 +47,10 @@ class RoutingElement : public Element {
 
 		// Keep track of MN which are not home
 		Vector<MobilityBinding> _mobilityBindings;
+
+		// TODO Keep track of visitors on the current network (FA side)
+		// Replace bool by something usefull
+		Vector<bool> _visitors;
 
 		// Reference to the advertiser element
 		Advertiser* _advertiser;
@@ -61,7 +68,7 @@ class RoutingElement : public Element {
 		void _encapIPinIP(Packet* p, IPAddress coa);
 
 		//  Generate a reply based on a specific request
-		Packet* _generateReply(IPAddress, uint16_t, uint16_t, RegistrationRequest*);
+		Packet* _generateReply(IPAddress, uint16_t, uint16_t, RegistrationRequest*, bool);
 
 		// Find the care of address for the mobile node which is away
 		// This information is stored in the mobilitybindings attribute
@@ -71,10 +78,15 @@ class RoutingElement : public Element {
 		// Return the IPAddress to which the reply must be sent
 		IPAddress _updateMobilityBindings(MobilityBinding data);
 
+		// Decreases all the lifetime field in the mobility bindings vector
+		void _decreaseLifetimeMobilityBindings();
+
 		// Check request and return various codes for the reply
 		// Code 0 indicates that request was valid
 		// For other codes we refer to RFC5944
-		uint8_t _checkRequest(RegistrationRequest*);
+		// The boolean parameter indicates if this agent is working like a HA or FA
+		uint8_t _checkRequest(RegistrationRequest*, bool);
+
 };
 
 CLICK_ENDDECLS

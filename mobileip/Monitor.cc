@@ -19,7 +19,7 @@ Monitor::Monitor() : _atHome(true){}
 Monitor::~ Monitor(){}
 
 int Monitor::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_ipAddress, 
+	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_ipAddress,
 	"REQUESTGENERATOR", cpkM, (RequestGenerator*) cpElement, &_reqGenerator,
 	"SOLICITATIONGENERATOR", cpkM, (Solicitor*) cpElement, &_solicitor,
 	cpEnd) < 0){
@@ -41,11 +41,11 @@ void Monitor::run_timer(Timer* t){
 }
 
 void Monitor::push(int, Packet* p){
-	LOG("[Monitor::push]");
+	// LOG("[Monitor::push]");
 	const click_ip* iph = p->ip_header();
 	IPAddress srcIP = iph->ip_src;
 	IPAddress destIP = iph->ip_dst;
-	LOG("[Monitor] Source = %s", srcIP.unparse().c_str());
+	// LOG("[Monitor] Source = %s", srcIP.unparse().c_str());
 	// ICMP advertisements
 	if (destIP == broadCast) {
 	  	LOG("[Monitor] Received a packet at the Mobile Node with dest 255.255.255.255, length %d", p->length());
@@ -75,13 +75,13 @@ void Monitor::push(int, Packet* p){
 			}
 			else if (icmp_len < (unsigned) 8 + (numAddrs * addrEntrySize * 4)) {
 				LOGERROR("[Monitor] Advertisement message is sent with ICMP length = %d "
-				"but it should be greater or equal to %d", 
+				"but it should be greater or equal to %d",
 				icmp_len,
 				8 + (numAddrs * addrEntrySize * 4));
 			}
 			else if (advertisement->type == 9) {
 				/*
-				if (_homeAgent == NULL) 
+				if (_homeAgent == NULL)
 					_homeAgent = IPAddress(advertisement->routerAddress);
 				*/
 				std::map<Timer*, ICMPRouterEntry>::iterator it =_availableRouters.begin();
@@ -89,7 +89,7 @@ void Monitor::push(int, Packet* p){
 				for (;it != _availableRouters.end(); ++it) {
 					if (it->second.routerAddress == advertisement->routerAddress) {
 						found = true;
-						// Update preferenceLevel						
+						// Update preferenceLevel
 						it->second.preferenceLevel = advertisement->preferenceLevel;
 						// Reset the timer to new value
 						it->first->schedule_after_sec(advertisement->lifetime);
@@ -132,8 +132,8 @@ void Monitor::push(int, Packet* p){
 		p->kill();
 		return;
 	}
-	LOG("[Monitor] IPH->IP_P:  %d", iph->ip_p);
-	LOG("[Monitor] CHECK: %d", destIP == _ipAddress.in_addr());
+	// LOG("[Monitor] IPH->IP_P:  %d", iph->ip_p);
+	// LOG("[Monitor] CHECK: %d", destIP == _ipAddress.in_addr());
 
 	// MobileIP reply
 	if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){

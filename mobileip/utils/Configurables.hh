@@ -11,7 +11,7 @@ const IPAddress broadCast = IPAddress("255.255.255.255");
  * ====================
  */
 
-/* 
+/*
  * ROUTER CONFIGURATION
  */
 // Destination for Router Advertisement messages.
@@ -38,12 +38,15 @@ const unsigned int MaxResponseDelay = 2;
 // Destination for solicitation messages.
 const IPAddress SolicitationAddress = broadCast;
 
-
-
+/* ===================================
+ * Registration related configurables
+ * ===================================
+ */
+const unsigned int maxLifetimeForeignAgent = 100; // seconds
+const unsigned int maxLifetimeHomeAgent = maxLifetimeForeignAgent;
 
 // Extension related configurables
 const unsigned int registrationLifetime = 30; // seconds
 
 // Requests related configurables
 const unsigned int requestLifetime = 60; // seconds
-

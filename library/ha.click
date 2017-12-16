@@ -129,17 +129,14 @@ elementclass Agent {
 		-> rt;
 
 	// Packets with destination on the private network
-	routingElement[0] -> class1 :: IPClassifier(udp, -)
-	class1[0] -> SetIPChecksum -> SetUDPChecksum -> private_arpq;
-	class1[1] -> SetIPChecksum -> private_arpq;
+	routingElement[0] -> SetIPChecksum -> MarkIPHeader -> class1 :: IPClassifier(ip proto udp, -)
+	class1[0] -> SetUDPChecksum -> private_arpq;
+	class1[1] -> private_arpq;
 	advertiser[0] -> private_arpq;
 
 	// Packets with destination on the public network
-	routingElement[1] -> SetIPChecksum -> class2 :: IPClassifier(ip proto udp, -);
+	routingElement[1] -> SetIPChecksum -> MarkIPHeader -> class2 :: IPClassifier(ip proto udp, -);
 	class2[0] -> SetUDPChecksum -> public_arpq;
 	class2[1] -> public_arpq;
-	// TODO fix this
-	routingElement[3] -> SetIPChecksum -> public_arpq;
-	routingElement[4] -> SetIPChecksum -> private_arpq;
 
 }
