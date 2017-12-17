@@ -338,8 +338,8 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 		// so return a reply with code 128
 		if (request->D == 1) return 128;
 
-		// If the x and S bit are not 0 ==> poorly formed request
-		if (request->x != 0 || request->S != 0) return 134;
+		// If the x and r bit are not 0 ==> poorly formed request
+		if (request->x != 0 || request->r != 0) return 134;
 
 		// If the home agent address 255.255.255.255
 		// return code 136 (Unknown home agent address)
@@ -348,10 +348,13 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 		// If the requested lifetime is too long ==> return code 69
 		if (ntohs(request->lifetime) > maxLifetimeForeignAgent) return 69;
 
-		// If the x and S bit are not 0 ==> poorly formed request
-		if (request->x != 0 || request->S != 0) return 70;
+		// If the x and r bit are not 0 ==> poorly formed request
+		if (request->x != 0 || request->r != 0) return 70;
 
-		// TODO add support for error codes 71 and 72
+		// GRE encapsulation and minimal encapsulation not supported in this version
+		if (request->M == 1 || request->G == 1) return 72;
+
+		// TODO add support for error codes 71 and 64
 	}
 
 	// TODO check if correct to only allow 1 as reply code

@@ -9,5 +9,10 @@ Finale inzending van Mobile IP:
     -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
     -) ICMP advertisement configurables default values clashen met condities (MAX_INITIAL_ADVERT_INTERVAL, AdvertisementLifetime te klein tegenover MinAdvertisementInterval)
     -) Optioneel laat identificatie waarde gelijk zijn aan de huidige tijd (zie wireshark)
-    -) Vraag hoe dat we de codes op pag 37-38 moeten verifieren? met handlers?
+  
+TODO email
+Vraag hoe dat we de codes op pag 37-38 moeten verifieren? met handlers?
+Vallen zaken die we niet moeten ondersteunen onder de reason unspecified error code? 
+Mogen we standaard replies sturen met code 1 aangezien wij geen simultaneous bindings moeten ondersteunen?
+Mss nog extra info vragen over die ICMP length
 

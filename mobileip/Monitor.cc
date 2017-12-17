@@ -135,24 +135,42 @@ void Monitor::push(int, Packet* p){
 	// LOG("[Monitor] IPH->IP_P:  %d", iph->ip_p);
 	// LOG("[Monitor] CHECK: %d", destIP == _ipAddress.in_addr());
 
-	// MobileIP reply
+	// Incoming IP packet with UDP payload
 	if (destIP == _ipAddress.in_addr() and iph->ip_p == 17){
-		// No need for the ip and udp header here
-		p->pull(sizeof(click_ip));
-		p->pull(sizeof(click_udp));
-		LOG("[Monitor] Received MobileIP Reply at the Mobile Node");
-		RegistrationReply* reply = (RegistrationReply*) p->data();
-		if (ntohs(reply->lifetime) == 0){
-			// Reply with lifetime 0 => stop the requests
-			_reqGenerator->stopRequests();
+		const click_ip* ipHeader = p->ip_header();
+		RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+		if (reply->type == 3){
+			LOG("[Monitor] Received MobileIP Reply at the Mobile Node");
+			if (reply->code == 0 || reply->code == 1){ // Registration was accepted
+				if (ntohs(reply->lifetime) == 0){
+					// Reply with lifetime 0 => stop the requests
+					// TODO further administration work with valid reply
+					_reqGenerator->stopRequests();
+				}
+			} else if (reply->code == 64){
+				LOGERROR("[Monitor] The registration was denied by FA (reason unspecified)");
+			} else if (reply->code == 69){
+				LOGERROR("[Monitor] The registration was denied by FA (requested lifetime is too long (<=%d seconds))", ntohs(reply->lifetime));
+				_reqGenerator->generateRequest(IPAddress(ipHeader->ip_src), IPAddress(), ntohs(reply->lifetime));
+			} else if (reply->code == 70){
+				LOGERROR("[Monitor] The registration was denied by FA (poorly formed request)");
+			} else if (reply->code == 71){
+				LOGERROR("[Monitor] The registration was denied by FA (poorly formed reply)");
+			} else if (reply->code == 72){
+				LOGERROR("[Monitor] The registration was denied by FA (encapsulation is unavailable)");
+			} else if (reply->code == 128){
+				LOGERROR("[Monitor] The registration was denied by HA (reason unspecified)");
+			} else if (reply->code == 134){
+				LOGERROR("[Monitor] The registration was denied by HA (poorly formed request)");
+			} else if (reply->code == 136){
+				LOGERROR("[Monitor] The registration was denied by HA (reason unspecified)");
+			}
+			// TODO handling of error codes
+			// Registration was denied by FA
+			// Registration was denied by HA
 		}
-
-		// TODO further implement the following scenario's
-		// Registration was accepted (basic version is done)
-		// Registration was denied by FA
-		// Registration was denied by HA
 	}
-  output(0).push(p);
+  	output(0).push(p);
 }
 
 CLICK_ENDDECLS
