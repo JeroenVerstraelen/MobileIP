@@ -153,7 +153,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		// TODO FA needs to check incoming requests and generate possible replies to it (see chapter 3.4)
 		// If incoming request at the FA is invalid ==> send reply immediately
 		RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-		if (_checkRequest(request, false) != 1){
+		if (_checkRequest(request, false) != 1 && _checkRequest(request, false) != 0){
 			LOG("[RoutingElement] FA received an invalid request, error code %d", _checkRequest(request, false));
 			Packet* reply = _generateReply(IPAddress(request->homeAddress), udpHeader->uh_dport, udpHeader->uh_sport, request, false);
 			p->kill();
@@ -173,14 +173,16 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		LOG("[RoutingElement] Received a request for the agent itself, don't relay");
 		RegistrationRequest* request = (RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
-		// Mobility binding management
+		uint8_t replyCode = _checkRequest(request, true);
+		bool validRequest = (replyCode == 1 || replyCode == 0);
 		MobilityBinding mobilityData;
 		mobilityData.homeAddress = request->homeAddress;
 		mobilityData.careOfAddress = request->careOfAddress;
 		mobilityData.lifetime = ntohs(request->lifetime);
 		mobilityData.replyIdentification = request->identification;
-		IPAddress replyDestination = _updateMobilityBindings(mobilityData);
+		IPAddress replyDestination = _updateMobilityBindings(mobilityData, validRequest);
 
+		// Generate the reply
 		Packet* replyPacket = _generateReply(replyDestination, udpHeader->uh_dport, udpHeader->uh_sport, request, true);
 
 		// Kill the request packet
@@ -293,7 +295,7 @@ IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
 	return returnValue;
 }
 
-IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
+IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool valid){
 	LOG("[RoutingElement] Mobility bindings size = %d", _mobilityBindings.size());
 	bool isPresent = false;
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
@@ -302,18 +304,18 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data){
 			if (data.careOfAddress == it->careOfAddress && data.lifetime == 0){
 				// If MN deregisters a specific binding with lifetime 0
 				// MN is back home
-				_mobilityBindings.erase(it);
+				if (valid) _mobilityBindings.erase(it);
 				return IPAddress(data.homeAddress);
 			} else {
 				// MN sends a new valid request for an existing binding
 				// and the according binding is updated
-				it->lifetime = data.lifetime;
+				if (valid) it->lifetime = data.lifetime;
 				break;
 			}
 		}
 	}
 	// If MN has no active binding, add it to the vector
-	if (!isPresent) _mobilityBindings.push_back(data);
+	if (!isPresent && valid) _mobilityBindings.push_back(data);
 	return IPAddress(data.careOfAddress);
 }
 
@@ -333,10 +335,10 @@ void RoutingElement::_decreaseLifetimeMobilityBindings(){
 
 uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAgent){
 	if (homeAgent){
-		// In our annotated version of RFC5944 there is no need to support
-		// a MN with a colocated care of address
-		// so return a reply with code 128
-		if (request->D == 1) return 128;
+		// In our annotated version of RFC5944
+		// we only support a couple of things
+		// so reply with code 128 if we don't support the requested functionality
+		if (request->D == 1 || request->B == 1 || request->T == 1 || request->M == 1 || request->G == 1) return 128;
 
 		// If the x and r bit are not 0 ==> poorly formed request
 		if (request->x != 0 || request->r != 0) return 134;
@@ -360,7 +362,7 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 	// TODO check if correct to only allow 1 as reply code
 	// Code 1 means that the registration was correct
 	// but there is no support for simultaneous bindings
-	return 1;
+	return 0;
 }
 
 CLICK_ENDDECLS

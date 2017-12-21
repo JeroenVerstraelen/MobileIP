@@ -75,8 +75,9 @@ class RoutingElement : public Element {
 		IPAddress _findCareOfAddress(IPAddress mobileNode);
 
 		// Create, update or delete MobilityBinding for the MN request
+		// Bool indicates if it was a valid request
 		// Return the IPAddress to which the reply must be sent
-		IPAddress _updateMobilityBindings(MobilityBinding data);
+		IPAddress _updateMobilityBindings(MobilityBinding, bool);
 
 		// Decreases all the lifetime field in the mobility bindings vector
 		void _decreaseLifetimeMobilityBindings();

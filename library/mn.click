@@ -33,7 +33,10 @@ elementclass MobileNode {
 			255.255.255.255 0,
 			$address:ipnet 1,
 			0.0.0.0/0 $gateway 1)
+		-> classifier :: IPClassifier(ip proto udp, -)[1]
 		-> monitor -> [1]output;
+
+	classifier[0] -> CheckUDPHeader -> monitor -> [1]output;
 
 	rt[1]	-> ipgw :: IPGWOptions($address)
 		-> FixIPSrc($address)

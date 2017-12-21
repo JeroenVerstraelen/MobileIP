@@ -85,7 +85,6 @@ elementclass Agent {
 		-> private_ttl :: DecIPTTL
 		-> private_frag :: IPFragmenter(1500)
 		-> [1]routingElement;
-		// TODO check this-> private_arpq;
 
 	private_paint[1]
 		-> ICMPError($private_address, redirect, host)
