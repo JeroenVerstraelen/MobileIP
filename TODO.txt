@@ -1,18 +1,13 @@
 Finale inzending van Mobile IP:
-    -) Timing verder finaliseren
-    -) Registraties vervallen zeer snel????!
-    -) Mobility bindings nog verder uitwerken
-    -) Error handling, foutieve codes via de handlers van de referentie implementatie
+    -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
     -) Mac addressen icmp reply messages nakijken
+    -) Als FA reboot moet er opnieuw een request gestuurd worden (kijk nr de sequence nummers)
     -) Move detection door gebruik ICMP solicitations
-    -) UDP checksums nakijken voor het public network
     -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
     -) ICMP advertisement configurables default values clashen met condities (MAX_INITIAL_ADVERT_INTERVAL, AdvertisementLifetime te klein tegenover MinAdvertisementInterval)
-    -) Optioneel laat identificatie waarde gelijk zijn aan de huidige tijd (zie wireshark)
+    -) ARP queries voor 192.168.2.254 worden na een tijd gestuurd bij het foreign network waarom??
   
-TODO email
-Vraag hoe dat we de codes op pag 37-38 moeten verifieren? met handlers?
-Vallen zaken die we niet moeten ondersteunen onder de reason unspecified error code? 
-Mogen we standaard replies sturen met code 1 aangezien wij geen simultaneous bindings moeten ondersteunen?
-Mss nog extra info vragen over die ICMP length
+TODO vragen
+er worden geen solicitaties meer gestuurd??
+
 

@@ -8,6 +8,7 @@
 #include "structs/MobilityBinding.hh"
 #include "structs/ICMPSolicitation.hh"
 #include "structs/RegistrationRequest.hh"
+#include "structs/RegistrationReply.hh"
 
 CLICK_DECLS
 /*
@@ -87,6 +88,10 @@ class RoutingElement : public Element {
 		// For other codes we refer to RFC5944
 		// The boolean parameter indicates if this agent is working like a HA or FA
 		uint8_t _checkRequest(RegistrationRequest*, bool);
+
+		// Checks if reply is valid at the FA side
+		// If poorly formed, generate and send reply with code 71
+		bool _poorlyFormed(RegistrationReply*);
 
 };
 

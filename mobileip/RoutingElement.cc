@@ -7,7 +7,6 @@
 
 // Local imports
 #include "RoutingElement.hh"
-#include "structs/RegistrationReply.hh"
 #include "utils/Configurables.hh"
 #include "utils/HelperFunctions.hh"
 
@@ -69,7 +68,7 @@ void RoutingElement::push(int port, Packet* p){
 	}
 
 	// ICMP
-	LOG("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
+	// LOG("[RoutingElement] Message for HA/FA, packet length = %d", p->length());
 	switch (iph->ip_p) {
 		case 1:
 			// Solicitation message
@@ -81,7 +80,7 @@ void RoutingElement::push(int port, Packet* p){
 		case 4:
 			// IP in IP
 			{
-				LOG("[RoutingElement] Handling decapsulation, reached tunnel endpoint");
+				// LOG("[RoutingElement] Handling decapsulation, reached tunnel endpoint");
 				// Decpasulate packet
 				p->pull(sizeof(click_ip));
 				// Forward to mobile node.
@@ -204,6 +203,9 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
 	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
 	RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
+	if (_poorlyFormed(reply)) {
+		// TODO generate a new reply if the relayed reply is poorly formed
+	}
 	iph->ip_src = _agentAddressPrivate.in_addr();
 	iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
 	iph->ip_len = htons(p->length());
@@ -212,7 +214,7 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 }
 
 void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
-	LOG("[RoutingElement] Encapsulate IPinIP and send to FA");
+	// LOG("[RoutingElement] Encapsulate IPinIP and send to FA");
 	click_ip* innerIP = (click_ip *) p->data();
 	innerIP->ip_ttl++;
 	innerIP->ip_sum = 0;
@@ -274,6 +276,7 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, u
 	if (!homeAgent && (reply->code == 69)) reply->lifetime = htons(maxLifetimeForeignAgent);
 	reply->homeAddress = IPAddress(request->homeAddress).addr();
 	reply->homeAgent = IPAddress(request->homeAgent).addr();
+	LOG("[RoutingElement] Received a request with id %d and sending a reply with it");
 	reply->identification = request->identification;
 
 	// Set the UDP header checksum based on the initialized values
@@ -322,6 +325,7 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 void RoutingElement::_decreaseLifetimeMobilityBindings(){
 	Vector<MobilityBinding> updatedBindings;
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
+		if (it->lifetime == 0xffff) continue; // If lifetime is infinity dont decrement it
 		it->lifetime--;
 		if (it->lifetime <= 0) {
 			LOG("Registration was not renewed in time, so delete it from the active bindings");
@@ -359,11 +363,15 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 		// TODO add support for error codes 71 and 64
 	}
 
-	// TODO check if correct to only allow 1 as reply code
-	// Code 1 means that the registration was correct
-	// but there is no support for simultaneous bindings
+	// Supposed to be 1 but we keep it 0 for this evaluation
 	return 0;
 }
+
+// Returns true if reply is poorly formed
+bool RoutingElement::_poorlyFormed(RegistrationReply* reply){
+	// TODO implement this
+	return false;
+};
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)

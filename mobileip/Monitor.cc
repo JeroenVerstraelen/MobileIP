@@ -111,8 +111,9 @@ void Monitor::push(int, Packet* p){
 				if (!sameNetwork(srcIP, _ipAddress)) {
 					// If the advertisement is not from the home agent
 					LOG("[Monitor] Mobile node is NOT AT HOME");
-					LOG("router address coa %s", IPAddress(extension->careOfAddress).unparse().c_str());
-					if (extension->R == 1) {
+					// LOG("router address coa %s", IPAddress(extension->careOfAddress).unparse().c_str());
+					// TODO toch niet op elke advertisement van de FA een nieuwe registration sturen ofwel?
+					if (extension->R == 1 && !_reqGenerator->hasActiveRegistration(IPAddress(extension->careOfAddress))) {
 						_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), requestLifetime);
 					}
 					_atHome = false;
@@ -146,6 +147,11 @@ void Monitor::push(int, Packet* p){
 					// Reply with lifetime 0 => stop the requests
 					// TODO further administration work with valid reply
 					_reqGenerator->stopRequests();
+				} else {
+					// If the reply was valid and lifetime is not 0
+					// Update the responding registration in RequestGenerator in order to resend
+					// a registration request when its lifetime is almost expired at the home agent
+					_reqGenerator->updateRegistration(reply->identification, ntohs(reply->lifetime));
 				}
 			} else if (reply->code == 64){
 				LOGERROR("[Monitor] The registration was denied by FA (reason unspecified)");
@@ -165,9 +171,6 @@ void Monitor::push(int, Packet* p){
 			} else if (reply->code == 136){
 				LOGERROR("[Monitor] The registration was denied by HA (reason unspecified)");
 			}
-			// TODO handling of error codes
-			// Registration was denied by FA
-			// Registration was denied by HA
 		}
 	}
   	output(0).push(p);

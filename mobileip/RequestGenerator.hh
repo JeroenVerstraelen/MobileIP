@@ -30,6 +30,12 @@ class RequestGenerator : public Element {
 		// Stop sending requests when MN is at home
 		void stopRequests();
 
+		// Update the lifetime when a valid reply has reached the MN
+		void updateRegistration(uint64_t, uint16_t);
+
+		// Returns true if the request generator has an pending registration data for this IPAddress
+		bool hasActiveRegistration(IPAddress);
+
 	private:
 		// Source address of the mobile node
     	IPAddress _srcAddress;
@@ -52,7 +58,11 @@ class RequestGenerator : public Element {
 
 		// Private methods
 		// Update the remainingLifetime field of each elemenet in the pendingRegistrationsData vector
-		void _updateRemainingLifetime();
+		void _decreaseRemainingLifetime();
+
+		// If the registration is not yet present => add it
+		// Otherwise replace it with a more up to date version of it
+		void _manageRegistrations(RegistrationData);
 };
 
 CLICK_ENDDECLS

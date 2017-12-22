@@ -31,7 +31,7 @@ void RequestGenerator::run_timer(Timer* t){
 	// Update the remainingLifetime fields in the pendingRegistrationsData vector
 	// click_chatter("[RequestGenerator] Timer is triggered");
 	if (t == &_timer){
-		_updateRemainingLifetime();
+		_decreaseRemainingLifetime();
 		_timer.reschedule_after_sec(1);
 	}
 }
@@ -39,6 +39,28 @@ void RequestGenerator::run_timer(Timer* t){
 void RequestGenerator::stopRequests(){
 	_timer.clear();
 	_pendingRegistrationsData.clear();
+}
+
+// If reply has reached MN, update its registration lifetime according to page49 in RFC 5944
+void RequestGenerator::updateRegistration(uint64_t identification, uint16_t newLifetime){
+	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
+		if (it->identification == identification){ // TODO check if this way is correct
+			LOG("Updating the pending registration for %d", identification);
+			uint16_t difference = it->originalLifetime - newLifetime;
+			it->remainingLifetime = it->remainingLifetime - difference;
+		}
+	}
+}
+
+bool RequestGenerator::hasActiveRegistration(IPAddress coa){
+	LOG("[RequestGenerator] hasActiveRegistration");
+	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
+		if (IPAddress(it->careOfAddress) == coa){
+			LOG("[RequestGenerator] Already an active registration for this coa");
+			return true;
+		}
+	}
+	return false;
 }
 
 void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime){
@@ -97,28 +119,56 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 
 	// MN needs to maintain the following data for each pending registration
 	RegistrationData data;
-	data.linkLayerAddress = 0; // TODO maybe change this?
-	data.destinationIPAddress = ntohl(IPAddress(iph->ip_dst).addr());
-	data.careOfAddress = ntohl(request->careOfAddress);
-	data.identification = ntohl(request->identification);
+	data.linkLayerAddress = 0;
+	data.destinationIPAddress = IPAddress(iph->ip_dst).addr(); // TODO check this
+	data.careOfAddress = request->careOfAddress;
+	data.identification = request->identification;
 	data.originalLifetime = ntohs(request->lifetime);
 	data.remainingLifetime = ntohs(request->lifetime);
-	_pendingRegistrationsData.push_back(data);
+	_manageRegistrations(data);
 
 	// If timer not yet scheduled ==> schedule it
 	// Request is sent so keep remainingLifetime up to date
-	// TODO make realistic scheduling
 	if (!_timer.scheduled()){ _timer.schedule_after_sec(1);}
+
+	LOG("[RequestGenerator] Sent a request with id %d", request->identification);
 
 	// Push the packet to the private network
 	output(0).push(packet);
 }
 
-void RequestGenerator::_updateRemainingLifetime(){
+void RequestGenerator::_decreaseRemainingLifetime(){
 	for (int it=0; it<_pendingRegistrationsData.size(); it++){
-		// click_chatter("[RequestGenerator] Lifetime %d", _pendingRegistrationsData.at(it).remainingLifetime);
+		LOG("[RequestGenerator] Registration expires in %d seconds", _pendingRegistrationsData.at(it).remainingLifetime);
+		// Don't decrement an infinite lifetime registration
+		if (_pendingRegistrationsData.at(it).originalLifetime == 0xffff) continue;
 		_pendingRegistrationsData.at(it).remainingLifetime--; // Decrement remainingLifetime
+		// The current registration’s Lifetime is near expiration
+		// so send a new registration request (page 42 RFC 5944)
+		if (_pendingRegistrationsData.at(it).remainingLifetime <= 5){
+			RegistrationData data = _pendingRegistrationsData.at(it);
+			LOG("[RequestGenerator] Registration is almost expired <= 5 seconds, so renew it");
+			LOG("[test] %s", IPAddress(data.destinationIPAddress).unparse().c_str());
+			generateRequest(IPAddress(data.destinationIPAddress), IPAddress(data.careOfAddress), data.originalLifetime);
+		}
 	}
+}
+
+void RequestGenerator::_manageRegistrations(RegistrationData data){
+	bool isPresent = false;
+	Vector<RegistrationData> updatedRegistrations;
+	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
+		if (it->careOfAddress == data.careOfAddress && it->destinationIPAddress == data.destinationIPAddress){
+			LOG("Registration is already present so remove the old one");
+			isPresent = true;
+			updatedRegistrations.push_back(data);
+			continue;
+		}
+		updatedRegistrations.push_back(*it);
+	}
+	if (!isPresent) updatedRegistrations.push_back(data);
+	// Discard the old and keep the new registrations
+	_pendingRegistrationsData = updatedRegistrations;
 }
 
 CLICK_ENDDECLS
