@@ -1,6 +1,5 @@
 Finale inzending van Mobile IP:
     -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
-    -) Mac addressen icmp reply messages nakijken
     -) Als FA reboot moet er opnieuw een request gestuurd worden (kijk nr de sequence nummers)
     -) Move detection door gebruik ICMP solicitations
     -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
