@@ -35,7 +35,7 @@ elementclass Agent {
 
 	// Input and output paths for interface 0
 	input
-		-> filter::HostEtherFilter(ETHER $private_address, DROP_OTHER true)[0]
+		-> HostEtherFilter(ETHER $private_address)
 		-> private_class :: Classifier(12/0806 20/0001, 12/0806 20/0002, 12/0800)
 		-> ARPResponder($private_address)
 		-> output;
@@ -60,8 +60,6 @@ elementclass Agent {
 
 	public_arpq :: ARPQuerier($public_address)
 		-> [1]output;
-
-	filter[1] -> Strip(14) -> DecIPTTL -> public_arpq;
 
 	public_class[1]
 		-> arpt[1]

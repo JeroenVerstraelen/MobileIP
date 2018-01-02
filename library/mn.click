@@ -15,6 +15,9 @@
 elementclass MobileNode {
 	$address, $gateway, $home_agent |
 
+	// Check and keeps track of ethernet address of current Agent
+	etherCheck :: EtherCheck;
+
 	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
 
@@ -56,6 +59,7 @@ elementclass MobileNode {
 
 	// incoming packets
 	input	-> HostEtherFilter($address)
+		-> etherCheck[0]
 		-> in_cl :: Classifier(12/0806 20/0001, 12/0806 20/0002, 12/0800)
 		-> arp_res :: ARPResponder($address)
 		-> output;
@@ -71,4 +75,7 @@ elementclass MobileNode {
 
 	// Send requests to the output
 	requestGenerator -> arpq;
+
+	// Send ping to the output
+	etherCheck[1] ->output;
 }

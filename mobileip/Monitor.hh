@@ -24,7 +24,7 @@ class Monitor : public Element {
 		const char *port_count() const	{ return "1/1"; }
 		const char *processing() const	{ return PUSH; }
 		int configure(Vector<String>&, ErrorHandler*);
-    		void push(int, Packet* p);
+    	void push(int, Packet* p);
 		void run_timer(Timer* t);
 
 	private:
@@ -41,9 +41,8 @@ class Monitor : public Element {
 		// The solicitation generator of the MN
 		Solicitor* _solicitor;
 
-		// TODO temp boolean value which keeps track if MN is at home
+		// Boolean value which keeps track if MN is at home
 		bool _atHome;
-
 };
 
 CLICK_ENDDECLS
