@@ -10,6 +10,7 @@
 #include "utils/HelperFunctions.hh"
 
 #define MAX_SOLICITATION_DELAY 1
+#define SOLICITATION_INTERVAL 10
 
 CLICK_DECLS
 Solicitor::Solicitor():_solicitationTimer(this){}
@@ -29,9 +30,10 @@ int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 }
 
 void Solicitor::run_timer(Timer* t){
+	LOG("[Solicitor] Timer ran");
 	if (t == &_solicitationTimer) {
-		// Solicitation sent once
 		generateSolicitation();
+		_solicitationTimer.schedule_after_sec(SOLICITATION_INTERVAL);
 	}
 }
 

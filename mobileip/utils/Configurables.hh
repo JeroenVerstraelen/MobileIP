@@ -27,7 +27,7 @@ const unsigned int MinAdvertisementInterval = 0.75 * MaxAdvertisementInterval;
 
 // Maximum number of seconds router address is valid.
 // No less than MaxAdvertisementInterval and no greater than 9000 seconds.
-const unsigned int AdvertisementLifetime = 45;
+const unsigned int AdvertisementLifetime = 1800;
 
 // max number of seconds that a router can wait before sending a response to a solicitation.
 const unsigned int MaxResponseDelay = 2;

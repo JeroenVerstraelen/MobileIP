@@ -14,8 +14,8 @@
 #endif
 
 // Generates a random number between a and b
-inline unsigned int generateRandomNumber(unsigned int a, unsigned int b){
-    return rand() % b + a;
+inline unsigned int generateRandomNumber(unsigned int min, unsigned int max){
+    return rand() % (max + 1 - min) + min;
 }
 
 // Only for ipv4 Class C network ID comparison, other configurations will not work!

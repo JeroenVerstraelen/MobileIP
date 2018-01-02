@@ -28,18 +28,6 @@ int Monitor::configure(Vector<String> &conf, ErrorHandler *errh) {
 	return 0;
 }
 
-void Monitor::run_timer(Timer* t){
-	std::map<Timer*, ICMPRouterEntry>::iterator it;
-	it = _availableRouters.find(t);
-  	if (it != _availableRouters.end()) {
-		// Discard entry
-		_availableRouters.erase(t);
-		delete t;
-		// Move detection
-		_solicitor->generateSolicitation();
-	}
-}
-
 void Monitor::push(int, Packet* p){
 	// LOG("[Monitor::push]");
 	const click_ip* iph = p->ip_header();
@@ -80,30 +68,6 @@ void Monitor::push(int, Packet* p){
 				8 + (numAddrs * addrEntrySize * 4));
 			}
 			else if (advertisement->type == 9) {
-				/*
-				if (_homeAgent == NULL)
-					_homeAgent = IPAddress(advertisement->routerAddress);
-				*/
-				std::map<Timer*, ICMPRouterEntry>::iterator it =_availableRouters.begin();
-				bool found = false;
-				for (;it != _availableRouters.end(); ++it) {
-					if (it->second.routerAddress == advertisement->routerAddress) {
-						found = true;
-						// Update preferenceLevel
-						it->second.preferenceLevel = advertisement->preferenceLevel;
-						// Reset the timer to new value
-						it->first->schedule_after_sec(advertisement->lifetime);
-					}
-				}
-				if (!found) {
-					ICMPRouterEntry entry = ICMPRouterEntry();
-					entry.routerAddress = advertisement->routerAddress;
-					entry.preferenceLevel = advertisement->preferenceLevel;
-					Timer* timer = new Timer();
-					timer->initialize(this);
-					timer->schedule_after_sec(advertisement->lifetime);
-					_availableRouters.insert( std::pair<Timer*, ICMPRouterEntry>(timer, entry) );
-				}
 				LOG("[Monitor] Received a valid advertisement message");
 				// TODO handle extension
 				MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));

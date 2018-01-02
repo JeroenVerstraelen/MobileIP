@@ -10,6 +10,8 @@
 #include "structs/MobilityAgentAdvertisementExtension.hh"
 #include "utils/Configurables.hh"
 #include "utils/HelperFunctions.hh"
+#include <iostream>
+#include <stdlib.h> 
 
 #define MAX_INITIAL_ADVERT_INTERVAL 16
 #define MAX_INITIAL_ADVERTISEMENTS 3
@@ -39,6 +41,7 @@ int Advertiser::initialize(ErrorHandler *) {
 }
 
 void Advertiser::run_timer(Timer* t){
+	LOG("[Advertiser] Running timer");
 	if (t == &_advertisementTimer){
 		// Reschedule the timer
 		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, MaxAdvertisementInterval*1000);
@@ -50,7 +53,7 @@ void Advertiser::run_timer(Timer* t){
 		// Agent advertisement condition
 		if (interval > (AdvertisementLifetime/3)*1000) 
 			interval = (AdvertisementLifetime/3)*1000;
-		LOG("[Advertiser] interval = %d", interval);
+		LOG("[Advertiser %s] interval = %d, adv_count = %d", _routerAddressPrivate.unparse().c_str(), interval, _advertisementCounter);
 		_advertisementTimer.reschedule_after_msec(interval);
 		// Send advertisement
 		_generateAdvertisement();
@@ -60,8 +63,8 @@ void Advertiser::run_timer(Timer* t){
 void Advertiser::respondToSolicitation(){
 	LOG("[Advertiser] Responding to solicitation");
 	unsigned int delay = generateRandomNumber(0, MAX_RESPONSE_DELAY*1000);
-	// LOG("[Advertiser] Delay is %d", delay);
-	_advertisementTimer.reschedule_after_msec(delay);
+	LOG("[Advertiser] Delay is %d", delay);
+	_advertisementTimer.schedule_after_msec(delay);
 }
 
 void Advertiser::_generateAdvertisement() {
