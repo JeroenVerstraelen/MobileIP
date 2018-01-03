@@ -27,6 +27,9 @@ class Monitor : public Element {
     	void push(int, Packet* p);
 
 	private:
+		// Keep track of the sequence numbers of the advertisements
+		uint16_t _currentSequenceNumber;
+
 		// The IP address of the MN
 		IPAddress _ipAddress;
 		// The IP address of the home agent, discovered using ICMP
@@ -39,6 +42,8 @@ class Monitor : public Element {
 
 		// Boolean value which keeps track if MN is at home
 		bool _atHome;
+
+		bool _updateSequenceNumber(unsigned int);
 };
 
 CLICK_ENDDECLS

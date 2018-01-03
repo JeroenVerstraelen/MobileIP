@@ -29,7 +29,7 @@ class Advertiser : public Element {
 		// Private attributes
 		IPAddress _routerAddressPrivate; // The private router address
 		IPAddress _routerAddressPublic;
-		unsigned int _advertisementCounter;
+		uint16_t _advertisementCounter;
 		Timer _advertisementTimer;
 
 };

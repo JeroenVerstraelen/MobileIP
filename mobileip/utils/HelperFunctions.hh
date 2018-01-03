@@ -3,19 +3,19 @@
 #include "Configurables.hh"
 
 #if PRINTDEBUG
-	#define LOG(...) click_chatter(__VA_ARGS__) 
+	#define LOG(...) click_chatter(__VA_ARGS__)
 #else
 	#define LOG(...) 0
 #endif
 #if PRINTERROR
-	#define LOGERROR(msg, ...) click_chatter("\033[1;31m" msg "\033[0m", ##__VA_ARGS__) 
+	#define LOGERROR(msg, ...) click_chatter("\033[1;31m" msg "\033[0m", ##__VA_ARGS__)
 #else
 	#define LOGERROR(...) 0
 #endif
 
 // Generates a random number between a and b
 inline unsigned int generateRandomNumber(unsigned int min, unsigned int max){
-    return rand() % (max + 1 - min) + min;
+    return rand() % max + min;
 }
 
 // Only for ipv4 Class C network ID comparison, other configurations will not work!

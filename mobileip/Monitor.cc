@@ -14,7 +14,7 @@
 #include "utils/HelperFunctions.hh"
 
 CLICK_DECLS
-Monitor::Monitor() : _atHome(true){}
+Monitor::Monitor() :  _currentSequenceNumber(0), _atHome(true){}
 
 Monitor::~ Monitor(){}
 
@@ -71,6 +71,8 @@ void Monitor::push(int, Packet* p){
 				LOG("[Monitor] Received a valid advertisement message");
 				// TODO handle extension
 				MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));
+				bool registerAgain = _updateSequenceNumber(ntohs(extension->sequenceNumber));
+				if (registerAgain) _reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), requestLifetime);
 				//if (srcIP != _homeAgent) {
 				if (!sameNetwork(srcIP, _ipAddress)) {
 					// If the advertisement is not from the home agent
@@ -88,6 +90,7 @@ void Monitor::push(int, Packet* p){
 					// If the advertisement is from the home agent
 					LOG("[Monitor] Mobile node is BACK AT HOME");
 					_atHome = true;
+
 					// Send request with lifetime 0
 					_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress), 0);
 				}
@@ -138,6 +141,22 @@ void Monitor::push(int, Packet* p){
 		}
 	}
   	output(0).push(p);
+}
+
+// Update the sequence number and if necessary resend a registration request
+// (if the FA has rebooted (sequenceNumber between 0 and 256))
+// Returns true if the MN SHOULD register again
+bool Monitor::_updateSequenceNumber(unsigned int seqNumber){
+	if (seqNumber < _currentSequenceNumber && !_atHome){
+		// seqNumber is an unsigned int and thus implicit >= 0
+		if (seqNumber <= 255 && !_atHome){
+				// FA has rebooted and MN should register again
+				return true;
+		}
+	}
+	_currentSequenceNumber = seqNumber;
+	if (_atHome) _currentSequenceNumber = 0;
+	return false;
 }
 
 CLICK_ENDDECLS

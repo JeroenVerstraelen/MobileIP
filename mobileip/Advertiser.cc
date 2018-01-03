@@ -11,7 +11,7 @@
 #include "utils/Configurables.hh"
 #include "utils/HelperFunctions.hh"
 #include <iostream>
-#include <stdlib.h> 
+#include <stdlib.h>
 
 #define MAX_INITIAL_ADVERT_INTERVAL 16
 #define MAX_INITIAL_ADVERTISEMENTS 3
@@ -47,11 +47,11 @@ void Advertiser::run_timer(Timer* t){
 		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, MaxAdvertisementInterval*1000);
 		// Router advertisement condition
 		if (_advertisementCounter <= MAX_INITIAL_ADVERTISEMENTS) {
-			if (interval > MAX_INITIAL_ADVERT_INTERVAL*1000) 
+			if (interval > MAX_INITIAL_ADVERT_INTERVAL*1000)
 				interval = MAX_INITIAL_ADVERT_INTERVAL*1000;
 		}
 		// Agent advertisement condition
-		if (interval > (AdvertisementLifetime/3)*1000) 
+		if (interval > (AdvertisementLifetime/3)*1000)
 			interval = (AdvertisementLifetime/3)*1000;
 		LOG("[Advertiser %s] interval = %d, adv_count = %d", _routerAddressPrivate.unparse().c_str(), interval, _advertisementCounter);
 		_advertisementTimer.reschedule_after_msec(interval);
@@ -107,6 +107,11 @@ void Advertiser::_generateAdvertisement() {
 	extension->length = 6+(4*1); 	// TODO maybe add variable N value here, N = 1 momentarily
 	extension->sequenceNumber = htons(_advertisementCounter);
 	_advertisementCounter++;	// Keep track of amount of advertisements were sent
+	// Sequence numbers only go from 0 to 0xffff (65535)
+	// When it is larger, set back to sequence number back to 256
+	if (_advertisementCounter >= 65536) {
+		_advertisementCounter = 256;
+	}
 	extension->registrationLifetime = htons(registrationLifetime);
 	extension->R = 1;
 	extension->B = 0;
