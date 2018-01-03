@@ -110,7 +110,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	if (coa == _homeAgent) request->careOfAddress = _currentCoa.addr();
 	if (coa == IPAddress()) request->careOfAddress = _currentCoa.addr();
 	_currentCoa = IPAddress(request->careOfAddress);
-	request->identification = (uint64_t) generateRandomNumber(0, UINT_MAX);
+	request->identification = (uint64_t) generateRandomNumber(0, 4294967294);
 	//click_chatter("[RequestGenerator] Random identification value %d", request->identification);
 
 	// Set the UDP header checksum based on the initialized values

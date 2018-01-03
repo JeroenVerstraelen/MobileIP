@@ -10,7 +10,7 @@
 #include "utils/HelperFunctions.hh"
 
 #define MAX_SOLICITATION_DELAY 1
-#define SOLICITATION_INTERVAL 10
+#define SOLICITATION_INTERVAL 5
 
 CLICK_DECLS
 Solicitor::Solicitor():_solicitationTimer(this){}
@@ -18,19 +18,22 @@ Solicitor::Solicitor():_solicitationTimer(this){}
 Solicitor::~ Solicitor(){}
 
 int Solicitor::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "SRC", cpkM, cpIPAddress, &_srcAddress, cpEnd) < 0){
+	if (cp_va_kparse(
+		conf, this, errh, \
+		"SRC", cpkM, cpIPAddress, &_srcAddress, \
+		cpEnd) < 0) {
 			return -1;
 	}
  	// Solicitation timer randomization uses IPAddress as seed
 	srand (_srcAddress.addr());
 	_solicitationTimer.initialize(this);
+	// Generate solicitation on start up
 	unsigned int delay = generateRandomNumber(0, MAX_SOLICITATION_DELAY*1000);
 	_solicitationTimer.schedule_after_msec(delay);
 	return 0;
 }
 
 void Solicitor::run_timer(Timer* t){
-	LOG("[Solicitor] Timer ran");
 	if (t == &_solicitationTimer) {
 		generateSolicitation();
 		_solicitationTimer.schedule_after_sec(SOLICITATION_INTERVAL);

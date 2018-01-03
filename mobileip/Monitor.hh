@@ -32,8 +32,10 @@ class Monitor : public Element {
 
 		// The IP address of the MN
 		IPAddress _ipAddress;
+
 		// The IP address of the home agent, discovered using ICMP
 		//IPAddress _homeAgent = NULL;
+
 		// The request generator of the MN
 		RequestGenerator* _reqGenerator;
 
@@ -43,6 +45,8 @@ class Monitor : public Element {
 		// Boolean value which keeps track if MN is at home
 		bool _atHome;
 
+		void _handleAdvertisement(Packet* p);
+		void _handleRegistrationReply(Packet* p);
 		bool _updateSequenceNumber(unsigned int);
 };
 

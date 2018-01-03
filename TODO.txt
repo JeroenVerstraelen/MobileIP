@@ -1,8 +1,45 @@
 Finale inzending van Mobile IP:
-    -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
-    -) Move detection door gebruik ICMP solicitations
-    -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
-    -) ICMP advertisement configurables default values clashen met condities (MAX_INITIAL_ADVERT_INTERVAL, AdvertisementLifetime te klein tegenover MinAdvertisementInterval)
-    -) ARP queries voor 192.168.2.254 worden na een tijd gestuurd bij het foreign network waarom??
+    -) Visitor list
 
+    -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
+
+
+REFERENTIE IMPLEMENTATIE 
+
+**********
+HOME AGENT
+**********
+
+write home_agent/adv.invalid_checksum true
+=====================================
+Wireshark laat weten dat checksums invalid zijn
+Intieel (op home network): 	Niets verschillend op console
+To foreign: 			Niets verschillend op console
+To home:			OOK niets!
+
+write home_agent/mobility.invalid_port true
+======================================
+
+Initieel (op home network):	Niets verschillend
+To foreign:			"Received registration reply packet on UDP port 64970, but expected port 65226" + geen pings in console
+				Poort nummers zijn elke keer verschillend i.e. "..18114, but expected port 18370"
+To home:			Console begint na n 30 seconden (!!) terug met pings. 
+				Blijkbaar na 30seconden ARP request van HA naar MN en terug, en dan werkt het. (Zonder handlers is dit instant)
+				Na ARP request in home.pcap beginnen ping request en reply terug in home.pcap
+Opnieuw to foreign:		Zelfde bericht met dezelfde port nummers
+
+
+
+
+*************
+FOREIGN AGENT
+*************
+
+write foreign_agent/visitors.invalid_port true
+======================================
+
+Initieel (op home network):	Niets verschillend
+To foreign:			Received registration reply packet on UDP port 34290, but expected port 34546
+To home:			Console begint na n 30 seconden (!!) terug met pings. 
+Opnieuw to foreign:		Received registration reply packet on UDP port 34290, but expected port 34546
 

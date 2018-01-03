@@ -15,8 +15,13 @@
 
 // Generates a random number between a and b
 inline unsigned int generateRandomNumber(unsigned int min, unsigned int max){
-    return rand() % max + min;
+	if ((max + 1 - min) != 0)
+		return rand() % (max + 1 - min) + min;
+	LOGERROR("(max + 1 - min) was 0");
+	LOGERROR("max: %u, min: %u, res: %u", max, min, (max + 1 - min));
+	return 0;
 }
+
 
 // Only for ipv4 Class C network ID comparison, other configurations will not work!
 inline bool sameNetwork(IPAddress ip1, IPAddress ip2) {

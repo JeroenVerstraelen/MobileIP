@@ -23,8 +23,11 @@ Advertiser::Advertiser(): _advertisementCounter(0), _advertisementTimer(this){}
 Advertiser::~ Advertiser(){}
 
 int Advertiser::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, "PRIVATE", cpkM, cpIPAddress, &_routerAddressPrivate, \
-	"PUBLIC", cpkM, cpIPAddress, &_routerAddressPublic, cpEnd) < 0){
+	if (cp_va_kparse(
+		conf, this, errh, 
+		"PRIVATE", cpkM, cpIPAddress, &_routerAddressPrivate, \
+		"PUBLIC", cpkM, cpIPAddress, &_routerAddressPublic, \
+		cpEnd) < 0) {
 			return -1;
 	}
 	return 0;
@@ -35,25 +38,26 @@ int Advertiser::initialize(ErrorHandler *) {
 	srand (_routerAddressPrivate.addr());
 	// Initialize timer object
 	_advertisementTimer.initialize(this);
-	// Set the timer to fire after configuration is done
-	_advertisementTimer.schedule_after_msec(500);
 	return 0;
 }
 
 void Advertiser::run_timer(Timer* t){
-	LOG("[Advertiser] Running timer");
 	if (t == &_advertisementTimer){
 		// Reschedule the timer
-		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, MaxAdvertisementInterval*1000);
+		unsigned int interval = generateRandomNumber(MinAdvertisementInterval*1000, 
+							     MaxAdvertisementInterval*1000);
 		// Router advertisement condition
+		/*
 		if (_advertisementCounter <= MAX_INITIAL_ADVERTISEMENTS) {
 			if (interval > MAX_INITIAL_ADVERT_INTERVAL*1000)
 				interval = MAX_INITIAL_ADVERT_INTERVAL*1000;
 		}
+		*/
 		// Agent advertisement condition
+		/*
 		if (interval > (AdvertisementLifetime/3)*1000)
 			interval = (AdvertisementLifetime/3)*1000;
-		LOG("[Advertiser %s] interval = %d, adv_count = %d", _routerAddressPrivate.unparse().c_str(), interval, _advertisementCounter);
+		*/
 		_advertisementTimer.reschedule_after_msec(interval);
 		// Send advertisement
 		_generateAdvertisement();
@@ -63,7 +67,6 @@ void Advertiser::run_timer(Timer* t){
 void Advertiser::respondToSolicitation(){
 	LOG("[Advertiser] Responding to solicitation");
 	unsigned int delay = generateRandomNumber(0, MAX_RESPONSE_DELAY*1000);
-	LOG("[Advertiser] Delay is %d", delay);
 	_advertisementTimer.schedule_after_msec(delay);
 }
 
@@ -71,8 +74,13 @@ void Advertiser::_generateAdvertisement() {
 	LOG("[Advertiser] Sending ICMP router advertisement");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
-	int packetsize = sizeof(click_ip) + sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension);
-	WritablePacket* packet = Packet::make(headroom, 0, packetsize, tailroom);
+	int packetsize = 
+	sizeof(click_ip) +
+	sizeof(ICMPAdvertisement) +
+	sizeof(MobilityAgentAdvertisementExtension);
+
+	WritablePacket* packet = 
+	Packet::make(headroom, 0, packetsize, tailroom);
 	memset(packet->data(), 0, packet->length());
 
 	// IP header
@@ -90,7 +98,8 @@ void Advertiser::_generateAdvertisement() {
 	packet->set_dst_ip_anno(AdvertisementAddress);
 
 	// ICMP advertisement
-	ICMPAdvertisement* advertisement = (ICMPAdvertisement*) (packet->data() + sizeof(click_ip));
+	ICMPAdvertisement* advertisement = 
+	(ICMPAdvertisement*) (packet->data() + sizeof(click_ip));
 	advertisement->type = 9;
 	advertisement->code = 0;
 	advertisement->checksum = 0x0;
@@ -102,13 +111,16 @@ void Advertiser::_generateAdvertisement() {
 	advertisement->preferenceLevel = htonl(0x1);
 
 	// Mobility agent advertisement extension
-	MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension*) (packet->data() + sizeof(click_ip) + sizeof(ICMPAdvertisement));
+	MobilityAgentAdvertisementExtension* extension = 
+	(MobilityAgentAdvertisementExtension*) (packet->data() +
+					       sizeof(click_ip) +
+                                               sizeof(ICMPAdvertisement));
 	extension->type = 16;
 	extension->length = 6+(4*1); 	// TODO maybe add variable N value here, N = 1 momentarily
 	extension->sequenceNumber = htons(_advertisementCounter);
-	_advertisementCounter++;	// Keep track of amount of advertisements were sent
+	// Keep track of amount of advertisements were sent
+	_advertisementCounter++;
 	// Sequence numbers only go from 0 to 0xffff (65535)
-	// When it is larger, set back to sequence number back to 256
 	if (_advertisementCounter >= 65536) {
 		_advertisementCounter = 256;
 	}
@@ -128,7 +140,9 @@ void Advertiser::_generateAdvertisement() {
 	extension->careOfAddress = _routerAddressPublic.addr();
 
 	// Checksum
-	advertisement->checksum = click_in_cksum((unsigned char *) advertisement, sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension));
+	advertisement->checksum = 
+	click_in_cksum((unsigned char *) advertisement,
+		       sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension));
 
 	// Sent the advertisement to neighboring interface
 	output(0).push(packet);
