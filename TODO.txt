@@ -1,12 +1,8 @@
 Finale inzending van Mobile IP:
     -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
-    -) Als FA reboot moet er opnieuw een request gestuurd worden (kijk nr de sequence nummers)
     -) Move detection door gebruik ICMP solicitations
     -) sameNetwork kan gevaarlijk zijn, home agent discovery mogelijks
     -) ICMP advertisement configurables default values clashen met condities (MAX_INITIAL_ADVERT_INTERVAL, AdvertisementLifetime te klein tegenover MinAdvertisementInterval)
     -) ARP queries voor 192.168.2.254 worden na een tijd gestuurd bij het foreign network waarom??
-  
-TODO vragen
-er worden geen solicitaties meer gestuurd??
 
 
