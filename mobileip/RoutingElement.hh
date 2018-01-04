@@ -9,6 +9,7 @@
 #include "structs/ICMPSolicitation.hh"
 #include "structs/RegistrationRequest.hh"
 #include "structs/RegistrationReply.hh"
+#include "structs/VisitorEntry.hh"
 
 CLICK_DECLS
 /*
@@ -49,9 +50,8 @@ class RoutingElement : public Element {
 		// Keep track of MN which are not home
 		Vector<MobilityBinding> _mobilityBindings;
 
-		// TODO Keep track of visitors on the current network (FA side)
-		// Replace bool by something usefull
-		Vector<bool> _visitors;
+		// Keep track of visitors on the current network (FA side)
+		Vector<VisitorEntry> _visitors;
 
 		// Reference to the advertiser element
 		Advertiser* _advertiser;
@@ -80,8 +80,21 @@ class RoutingElement : public Element {
 		// Return the IPAddress to which the reply must be sent
 		IPAddress _updateMobilityBindings(MobilityBinding, bool);
 
-		// Decreases all the lifetime field in the mobility bindings vector
+		// Update the entry in the visitors list based on the incoming reply
+		void _updateVisitors(RegistrationReply*);
+
+		// Add entry to the _visitors list
+		// Based on the request, the destination of the message and the udp source port
+		void _addPendingVisitor(RegistrationRequest*, uint32_t, uint16_t);
+
+		// If registration was denied, delete the pending visitor
+		void _deletePendingVisitor(RegistrationReply*);
+
+		// Decreases all the lifetime fields in the mobility bindings vector
 		void _decreaseLifetimeMobilityBindings();
+
+		// Decreases all the lifetime fields in the visitors vector
+		void _decreaseLifetimeVisitors();
 
 		// Check request and return various codes for the reply
 		// Code 0 indicates that request was valid

@@ -17,7 +17,7 @@ RoutingElement::~ RoutingElement(){}
 
 int RoutingElement::configure(Vector<String> &conf, ErrorHandler *errh) {
 	if (cp_va_kparse(
-		conf, this, errh, 
+		conf, this, errh,
 	        "PUBLIC", cpkM, cpIPAddress, &_agentAddressPublic, \
 		"PRIVATE", cpkM, cpIPAddress, &_agentAddressPrivate, \
 		"ADVERTISER", cpkM, (Advertiser*) cpElement, &_advertiser, \
@@ -37,6 +37,7 @@ int RoutingElement::initialize(ErrorHandler *) {
 void RoutingElement::run_timer(Timer* t){
 	if (t == &_mobilityTimer){
 		_decreaseLifetimeMobilityBindings();
+		_decreaseLifetimeVisitors();
 		t->reschedule_after_sec(1);
 	}
 }
@@ -76,7 +77,7 @@ void RoutingElement::push(int port, Packet* p){
 		case 4:
 			// IP in IP
 			{
-				// Decpasulate packet
+				// Decapsulate packet
 				p->pull(sizeof(click_ip));
 				// Forward to mobile node.
 				click_ip* ipHeader = (click_ip*) p->data();
@@ -113,7 +114,7 @@ void RoutingElement::_solicitationResponse(Packet* p) {
 	unsigned csum = click_in_cksum((unsigned char *)icmph, icmp_len) & 0xFFFF;
 	if (solicitation->code != 0) {
 		LOGERROR("[RoutingElement] Solicitation message is "
-		 	 "sent with code %d but it should be 0", 
+		 	 "sent with code %d but it should be 0",
 			 solicitation->code);
 	}
 	else if (icmp_len % 8 != 0){
@@ -136,9 +137,10 @@ void RoutingElement::_solicitationResponse(Packet* p) {
 // Reply on port 3 private/4 public.
 void RoutingElement::_registrationRequestResponse(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
+	uint32_t dstAddressRequest = ntohl(IPAddress(iph->ip_dst).addr());
 	click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
 	LOG("[RoutingElement] Received a registration request at agent side");
-	RegistrationRequest* request = 
+	RegistrationRequest* request =
 	(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	// If the request is for another agent
 	if (request->homeAgent != _agentAddressPublic.addr()){
@@ -151,7 +153,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		// TODO FA needs to check incoming requests and
 		// TODO generate possible replies to it (see chapter 3.4)
 		// If incoming request at the FA is invalid ==> send reply immediately
-		RegistrationRequest* request = 
+		RegistrationRequest* request =
 		(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 		if (_checkRequest(request, false) != 1 &&
 		    _checkRequest(request, false) != 0) {
@@ -160,12 +162,16 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 			Packet* reply = _generateReply(IPAddress(request->homeAddress),
 						       udpHeader->uh_dport,
 						       udpHeader->uh_sport,
-						       request, 
+						       request,
 					       	       false);
 			p->kill();
 			output(0).push(reply);
 			return;
 		}
+
+		// Request was valid so add entry in the visitors list
+		uint16_t udpPort = ntohs(udpHeader->uh_sport);
+		_addPendingVisitor(request, dstAddressRequest, udpPort);
 
 		// Set the UDP header checksum based on the initialized values
 		//unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));
@@ -177,7 +183,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 	if (request->homeAgent == _agentAddressPublic.addr() || request->homeAgent == broadCast.addr()){
 		// Handle the registration request
 		LOG("[RoutingElement] Received a request for the agent itself, don't relay");
-		RegistrationRequest* request = 
+		RegistrationRequest* request =
 		(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
 		uint8_t replyCode = _checkRequest(request, true);
@@ -213,11 +219,14 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 void RoutingElement::_registrationReplyRelay(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
 	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
-	RegistrationReply* reply = 
+	RegistrationReply* reply =
 	(RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-	if (_poorlyFormed(reply)) {
+	bool poorlyFormed = _poorlyFormed(reply);
+	if (poorlyFormed) {
 		// TODO generate a new reply if the relayed reply is poorly formed
 	}
+	if (!poorlyFormed && (reply->code == 1 || reply->code == 0)) _updateVisitors(reply);
+	if (reply->code != 0 && reply->code != 1) _deletePendingVisitor(reply);
 	iph->ip_src = _agentAddressPrivate.in_addr();
 	iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
 	iph->ip_len = htons(p->length());
@@ -232,7 +241,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	innerIP->ip_sum = click_in_cksum((unsigned char *)innerIP, sizeof(click_ip));
 	p->set_ip_header(innerIP, sizeof(click_ip));
 	// Create new packet with place for outer IP header
-	WritablePacket* newPacket = p->push(sizeof(click_ip)); 
+	WritablePacket* newPacket = p->push(sizeof(click_ip));
 	click_ip* outerIP = reinterpret_cast<click_ip *>(newPacket->data());;
 	outerIP->ip_v = 4;
 	outerIP->ip_hl = sizeof(click_ip) >> 2;
@@ -280,7 +289,7 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, u
 	udpHeader->uh_sum = 0;
 
 
-	RegistrationReply* reply = 
+	RegistrationReply* reply =
 	(RegistrationReply*) (packet->data() + sizeof(click_ip) + sizeof(click_udp));
 	reply->type = 3;
 	reply->code = _checkRequest(request, homeAgent);
@@ -335,10 +344,55 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 	return IPAddress(data.careOfAddress);
 }
 
+void RoutingElement::_updateVisitors(RegistrationReply* reply){
+	// TODO delete the older entries if reply was valid and keep newest(page 53 RFC)
+	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
+		// Found corresponding entry
+		// MN source address is the same as the reply homeAddress
+		if (ntohl(reply->homeAddress) == it->sourceIPAddress){
+			if (ntohs(reply->lifetime) == 0) {
+				_visitors.erase(it);
+				continue;
+			}
+			it->remainingLifetime = ntohs(reply->lifetime);
+			if (maxLifetimeForeignAgent < ntohs(reply->lifetime)) it->remainingLifetime = maxLifetimeForeignAgent;
+			it->identification = reply->identification;
+		}
+	}
+}
+
+void RoutingElement::_addPendingVisitor(RegistrationRequest* request, uint32_t dst, uint16_t port){
+	VisitorEntry entry;
+	entry.linkLayerAddress = 0;
+	entry.sourceIPAddress = ntohl(request->homeAddress);
+	entry.destinationIPAddress = dst;
+	entry.udpSourcePort = port;
+	entry.homeAgentAddress = ntohl(request->homeAgent);
+	entry.identification = request->identification;
+	entry.requestLifetime = ntohs(request->lifetime);
+	entry.remainingLifetime = entry.requestLifetime;
+	_visitors.push_back(entry);
+}
+
+void RoutingElement::_deletePendingVisitor(RegistrationReply* reply){
+	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
+		// Found corresponding entry
+		// MN source address is the same as the reply homeAddress
+		// and identification field match
+		if (ntohl(reply->homeAddress) == it->sourceIPAddress && reply->identification == it->identification){
+			_visitors.erase(it);
+			return;
+		}
+	}
+}
+
 void RoutingElement::_decreaseLifetimeMobilityBindings(){
 	Vector<MobilityBinding> updatedBindings;
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
-		if (it->lifetime == 0xffff) continue; // If lifetime is infinity dont decrement it
+		if (it->lifetime == 0xffff) { // If lifetime is infinity dont decrement it
+			updatedBindings.push_back(*it);
+			continue;
+		}
 		it->lifetime--;
 		if (it->lifetime <= 0) {
 			LOG("Registration was not renewed in time, so delete it from the active bindings");
@@ -348,6 +402,24 @@ void RoutingElement::_decreaseLifetimeMobilityBindings(){
 	}
 	// Discard the expired and keep the active bindings
 	_mobilityBindings = updatedBindings;
+}
+
+void RoutingElement::_decreaseLifetimeVisitors(){
+	Vector<VisitorEntry> updatedVisitors;
+	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
+		if (it->requestLifetime == 0xffff){// If lifetime is infinity dont decrement it
+			updatedVisitors.push_back(*it);
+			continue;
+		}
+		it->remainingLifetime--;
+		if (it->remainingLifetime <= 0) {
+			LOG("Registration was not renewed in time, so delete it from the visitors list");
+			continue;
+		}
+		updatedVisitors.push_back(*it); // If lifetime is still valid (> 0) keep the binding
+	}
+	// Discard the expired and keep the active visitors
+	_visitors = updatedVisitors;
 }
 
 uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAgent){

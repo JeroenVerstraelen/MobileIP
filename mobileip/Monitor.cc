@@ -113,14 +113,18 @@ void Monitor::_handleAdvertisement(Packet* p) {
 
 void Monitor::_handleRegistrationReply(Packet* p) {
 	const click_ip* ipHeader = p->ip_header();
+	click_udp *udpHeader = (click_udp *) (p->data() + sizeof(click_ip));
 	RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	if (reply->type != 3)
 		return;
 	LOG("[Monitor] Received MobileIP Reply at the Mobile Node");
+	if (ntohs(udpHeader->uh_dport) != portUDP){
+		LOGERROR("[Monitor] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), portUDP);
+		return;
+	}
 	if (reply->code == 0 || reply->code == 1){ // Registration was accepted
 		if (ntohs(reply->lifetime) == 0){
 			// Reply with lifetime 0 => stop the requests
-			// TODO further administration work with valid reply
 			_reqGenerator->stopRequests();
 		} else {
 			// If the reply was valid and lifetime is not 0
@@ -149,7 +153,7 @@ void Monitor::_handleRegistrationReply(Packet* p) {
 }
 
 
-/* 
+/*
  * Update the sequence number and if necessary resend a registration request
  * (if the FA has rebooted (sequenceNumber between 0 and 256))
  * Returns true if the MN SHOULD register again

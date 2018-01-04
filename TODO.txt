@@ -1,6 +1,7 @@
 Finale inzending van Mobile IP:
-    -) Visitor list
-
+    -) Visitor list (nog wat verder finetunen)
+    -) De udp poorten nog gaan nakijken bij de FA (aan de hand van entry in visitor list (zie UDP source port in visitorEntry))
+    -) Ethercheck laat eerst ICMP ping verloren gaan terwijl dit eigenlijk niet mag (gebruik _atHome in ethercheck) 
     -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
 
 

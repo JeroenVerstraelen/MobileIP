@@ -87,7 +87,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 
 	// UDP header
 	click_udp *udpHeader = (click_udp *) (packet->data() + sizeof(click_ip));
-	udpHeader->uh_sport = htons(63344);
+	udpHeader->uh_sport = htons(portUDP);
 	udpHeader->uh_dport = htons(434);
 	udpHeader->uh_ulen = htons(packet->length() - sizeof(click_ip));
 	udpHeader->uh_sum = 0;
