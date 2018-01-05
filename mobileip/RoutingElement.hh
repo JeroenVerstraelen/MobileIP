@@ -106,6 +106,9 @@ class RoutingElement : public Element {
 		// If poorly formed, generate and send reply with code 71
 		bool _poorlyFormed(RegistrationReply*);
 
+		// Find corresponding entry in visitors list according to incoming reply
+		VisitorEntry _findVisitorEntry(RegistrationReply*);
+
 };
 
 CLICK_ENDDECLS

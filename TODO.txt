@@ -1,6 +1,8 @@
 Finale inzending van Mobile IP:
     -) Visitor list (nog wat verder finetunen)
-    -) De udp poorten nog gaan nakijken bij de FA (aan de hand van entry in visitor list (zie UDP source port in visitorEntry))
+    -) Check alle TODO's in de code 
+    -) ZEKER EENS NAGAAN OP HARDCODED ADDRESSEN
+    -) Ergens nog een CheckUDPHeader toevoegen bij FA en HA.click voor opvangen foutieve UDP checksums
     -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
 
 

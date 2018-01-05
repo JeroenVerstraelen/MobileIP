@@ -218,10 +218,20 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 // Relay the registration reply on the private network (to the MN)
 void RoutingElement::_registrationReplyRelay(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
+	click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
 	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
 	RegistrationReply* reply =
 	(RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	bool poorlyFormed = _poorlyFormed(reply);
+
+	// Check if port is corresponding with the port used in the request
+	// TODO delete entry here?? 
+	VisitorEntry entry = _findVisitorEntry(reply);
+	if (entry.udpSourcePort != ntohs(udpHeader->uh_dport)){
+		LOGERROR("[RoutingElement] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), entry.udpSourcePort);
+		p->kill();
+		return;
+	}
 	if (poorlyFormed) {
 		// TODO generate a new reply if the relayed reply is poorly formed
 	}
@@ -457,6 +467,17 @@ bool RoutingElement::_poorlyFormed(RegistrationReply* reply){
 	// TODO implement this
 	return false;
 };
+
+VisitorEntry RoutingElement::_findVisitorEntry(RegistrationReply* reply){
+	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
+		// Found corresponding entry
+		// MN source address is the same as the reply homeAddress
+		// and identification field match
+		if (ntohl(reply->homeAddress) == it->sourceIPAddress && reply->identification == it->identification){
+			return *it;
+		}
+	}
+}
 
 CLICK_ENDDECLS
 EXPORT_ELEMENT(RoutingElement)
