@@ -61,7 +61,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 		uint8_t numAddrs = advertisement->numAddrs;
 		uint8_t addrEntrySize = advertisement->addrEntrySize;
 		if (csum != 0) {
-			LOG("[Monitor] Advertisement message is sent with an invalid checksum");
+			LOGERROR("[Monitor] Advertisement message is sent with an invalid checksum");
 		}
 		else if (advertisement->code != 0) {
 			LOGERROR("[Monitor] Advertisement message is sent with code %d "
@@ -83,16 +83,16 @@ void Monitor::_handleAdvertisement(Packet* p) {
 		}
 		else {
 			LOG("[Monitor] Received a valid advertisement message");
-			// TODO handle extension
 			MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));
+			uint16_t lifetime = ntohs(extension->registrationLifetime);
 			bool registerAgain = _updateSequenceNumber(ntohs(extension->sequenceNumber));
-			if (registerAgain) _reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), requestLifetime);
+			if (registerAgain) 
+				_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), lifetime);
 			if (!sameNetwork(srcIP, _ipAddress)) {
 				// If the advertisement is not from the home agent
 				LOG("[Monitor] Mobile node is NOT AT HOME");
-				// TODO toch niet op elke advertisement van de FA een nieuwe registration sturen ofwel?
 				if (extension->R == 1 && !_reqGenerator->hasActiveRegistration(IPAddress(extension->careOfAddress))) {
-					_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), requestLifetime);
+					_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), lifetime);
 				}
 				_atHome = false;
 				return;

@@ -151,7 +151,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 		iph->ip_len = htons(p->length());
 		p->set_dst_ip_anno(IPAddress(iph->ip_dst));
 		// TODO FA needs to check incoming requests and
-		// TODO generate possible replies to it (see chapter 3.4)
+		// TODO generate possible replies to it (see chapter 3.3)
 		// If incoming request at the FA is invalid ==> send reply immediately
 		RegistrationRequest* request =
 		(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
@@ -455,7 +455,8 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 		// GRE encapsulation and minimal encapsulation not supported in this version
 		if (request->M == 1 || request->G == 1) return 72;
 
-		// TODO add support for error codes 71 and 64
+		// TODO add support for error code 64
+
 	}
 
 	// Supposed to be 1 but we keep it 0 for this evaluation

@@ -44,7 +44,7 @@ void RequestGenerator::stopRequests(){
 // If reply has reached MN, update its registration lifetime according to page49 in RFC 5944
 void RequestGenerator::updateRegistration(uint64_t identification, uint16_t newLifetime){
 	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
-		if (it->identification == identification){ // TODO check if this way is correct
+		if (it->identification == identification) { // TODO check if this way is correct
 			LOG("Updating the pending registration for %d", identification);
 			uint16_t difference = it->originalLifetime - newLifetime;
 			it->remainingLifetime = it->remainingLifetime - difference;

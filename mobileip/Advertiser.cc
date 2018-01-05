@@ -116,7 +116,7 @@ void Advertiser::_generateAdvertisement() {
 					       sizeof(click_ip) +
                                                sizeof(ICMPAdvertisement));
 	extension->type = 16;
-	extension->length = 6+(4*1); 	// TODO maybe add variable N value here, N = 1 momentarily
+	extension->length = 6+(4*1);
 	extension->sequenceNumber = htons(_advertisementCounter);
 	// Keep track of amount of advertisements were sent
 	_advertisementCounter++;
@@ -143,7 +143,6 @@ void Advertiser::_generateAdvertisement() {
 	advertisement->checksum = 
 	click_in_cksum((unsigned char *) advertisement,
 		       sizeof(ICMPAdvertisement) + sizeof(MobilityAgentAdvertisementExtension));
-
 	// Sent the advertisement to neighboring interface
 	output(0).push(packet);
 }

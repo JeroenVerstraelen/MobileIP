@@ -12,8 +12,8 @@ CLICK_DECLS
 
 /*
  *	Click element that will monitor for the mobile node
- *  It will receive incoming ICMP advertisement and handle them
- *  It will receive registration replies and if necessary send a new registration through the RequestGenerator class
+ *	It will receive incoming ICMP advertisement and handle them
+ *	It will receive registration replies and if necessary send a new registration through the RequestGenerator class
 */
 class Monitor : public Element {
 	public:

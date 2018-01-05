@@ -20,15 +20,22 @@ elementclass Agent {
 	routingElement :: RoutingElement(PUBLIC $public_address, PRIVATE $private_address, ADVERTISER advertiser);
 
 	// Shared IP input path and routing table
+	rt :: StaticIPLookup(
+				$private_address:ip/32 0,
+				$public_address:ip/32 0,
+				255.255.255.255 0,
+				$private_address:ipnet 1,
+				$public_address:ipnet 2,
+				0.0.0.0/0 $gateway 2);
+
 	ip :: Strip(14)
 		-> CheckIPHeader
-		-> rt :: StaticIPLookup(
-					$private_address:ip/32 0,
-					$public_address:ip/32 0,
-					255.255.255.255 0,
-					$private_address:ipnet 1,
-					$public_address:ipnet 2,
-					0.0.0.0/0 $gateway 2);
+		-> udpClassifier :: IPClassifier(ip proto udp, -)[1]
+		-> rt;
+
+	udpClassifier[0] 
+		-> CheckUDPHeader
+		-> rt;
 
 	// ARP responses are copied to each ARPQuerier and the host.
 	arpt :: Tee (2);

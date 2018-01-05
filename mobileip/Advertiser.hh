@@ -5,7 +5,7 @@
 CLICK_DECLS
 
 /*
- *	Click element that will handle and send advertisements
+ *	Click element that will send advertisements
 */
 class Advertiser : public Element {
 	public:

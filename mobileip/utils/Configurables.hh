@@ -46,10 +46,7 @@ const unsigned int maxLifetimeForeignAgent = 1800; // seconds
 const unsigned int maxLifetimeHomeAgent = maxLifetimeForeignAgent;
 
 // Extension related configurables
-const unsigned int registrationLifetime = 30; // seconds
-
-// Requests related configurables
-const unsigned int requestLifetime = 60; // seconds
+const unsigned int registrationLifetime = 60; // seconds
 
 // Source port of registrations at the MN
 const unsigned int portUDP = 63344;

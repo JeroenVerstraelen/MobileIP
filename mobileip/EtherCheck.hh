@@ -11,7 +11,7 @@ CLICK_DECLS
 
 /*
  *	Click element that keep track of the ethernet address of the incoming advertisements
- *  Input 1 is just the normal flow of the messages through the MN
+ *	Input  0 is just the normal flow of the messages through the MN
  *	Output 0 is for all none ping related messages
  *	Output 1 is used for ICMP ping replies
 */
@@ -30,7 +30,6 @@ class EtherCheck : public Element {
 		uint8_t etherDest[6];
 
 		Monitor* _monitorMN;
-
 };
 
 CLICK_ENDDECLS
