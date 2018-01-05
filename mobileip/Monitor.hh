@@ -26,6 +26,9 @@ class Monitor : public Element {
 		int configure(Vector<String>&, ErrorHandler*);
     	void push(int, Packet* p);
 
+		// Method to return if the MN is at home or not
+		bool isHome(){ return _atHome; }
+
 	private:
 		// Keep track of the sequence numbers of the advertisements
 		uint16_t _currentSequenceNumber;

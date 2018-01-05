@@ -14,7 +14,7 @@ EtherCheck::EtherCheck(){}
 EtherCheck::~ EtherCheck(){}
 
 int EtherCheck::configure(Vector<String> &conf, ErrorHandler *errh) {
-	if (cp_va_kparse(conf, this, errh, cpEnd) < 0){
+	if (cp_va_kparse(conf, this, errh, "MONITOR", cpkM, (Monitor*) cpElement, &_monitorMN, cpEnd) < 0){
 			return -1;
 	}
 	return 0;
@@ -32,7 +32,7 @@ void EtherCheck::push(int, Packet* p){
 				for (int i=0; i<6; i++) etherDest[i] = eth_h->ether_shost[i];
 			}
 			// ping reply
-			if (icmp_h->icmp_type == 0){
+			if (icmp_h->icmp_type == 0 && !_monitorMN->isHome()){
 				WritablePacket* q = p->uniqueify();
 				q->pull(sizeof(click_ether));
 				q->push(sizeof(click_ether));

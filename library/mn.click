@@ -15,9 +15,6 @@
 elementclass MobileNode {
 	$address, $gateway, $home_agent |
 
-	// Check and keeps track of ethernet address of current Agent
-	etherCheck :: EtherCheck;
-
 	// Generates ICMP solicitation messages and send them on the local network
 	solicitationGenerator :: Solicitor(SRC $address);
 
@@ -27,6 +24,10 @@ elementclass MobileNode {
 	// Monitors registration replies and ICMP advertisements, and initiates proper replies for them
 	// through the use of solicitationgenerator and requestgenerator
 	monitor :: Monitor(SRC $address, REQUESTGENERATOR requestGenerator, SOLICITATIONGENERATOR solicitationGenerator);
+
+	// Check and keeps track of ethernet address of current FA
+	// If MN is @ home just use normal routing for pings
+	etherCheck :: EtherCheck(MONITOR monitor);
 
 	// Shared IP input path
 	ip :: Strip(14)

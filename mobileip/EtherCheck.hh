@@ -5,6 +5,7 @@
 
 // Local imports
 #include "utils/HelperFunctions.hh"
+#include "Monitor.hh"
 
 CLICK_DECLS
 
@@ -27,6 +28,8 @@ class EtherCheck : public Element {
 
 	private:
 		uint8_t etherDest[6];
+
+		Monitor* _monitorMN;
 
 };
 
