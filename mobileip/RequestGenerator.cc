@@ -64,7 +64,7 @@ bool RequestGenerator::hasActiveRegistration(IPAddress coa){
 }
 
 void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime){
-	//click_chatter("[RequestGenerator] Sending MobileIP request message");
+	click_chatter("[RequestGenerator] Sending MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationRequest);
@@ -148,7 +148,6 @@ void RequestGenerator::_decreaseRemainingLifetime(){
 		if (_pendingRegistrationsData.at(it).remainingLifetime <= 5){
 			RegistrationData data = _pendingRegistrationsData.at(it);
 			LOG("[RequestGenerator] Registration is almost expired <= 5 seconds, so renew it");
-			LOG("[test] %s", IPAddress(data.destinationIPAddress).unparse().c_str());
 			generateRequest(IPAddress(data.destinationIPAddress), IPAddress(data.careOfAddress), data.originalLifetime);
 		}
 	}

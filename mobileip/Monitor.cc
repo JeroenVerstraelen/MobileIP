@@ -86,8 +86,10 @@ void Monitor::_handleAdvertisement(Packet* p) {
 			MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));
 			uint16_t lifetime = ntohs(extension->registrationLifetime);
 			bool registerAgain = _updateSequenceNumber(ntohs(extension->sequenceNumber));
-			if (registerAgain) 
+			if (registerAgain && !sameNetwork(srcIP, _ipAddress)) {
+				LOGERROR("[Monitor] FA has rebooted, resend registration request");
 				_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), lifetime);
+			}
 			if (!sameNetwork(srcIP, _ipAddress)) {
 				// If the advertisement is not from the home agent
 				LOG("[Monitor] Mobile node is NOT AT HOME");
