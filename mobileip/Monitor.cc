@@ -105,7 +105,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 				_atHome = true;
 
 				// Send request with lifetime 0
-				_reqGenerator->generateRequest(srcIP, IPAddress(advertisement->routerAddress), 0);
+				_reqGenerator->generateRequest(srcIP, _ipAddress, 0);
 			}
 		}
 	}

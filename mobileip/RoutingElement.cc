@@ -286,12 +286,10 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, u
 	iph->ip_tos = 0x00;
 	iph->ip_ttl = 64;
 	iph->ip_dst = dstAddress.in_addr();
-	// TODO fix this here
-	// Check if dstAddress is the same as the local network (_agentAddressPrivate) with sameNetwork()
-	// If yes use the agentAddressPrivate as ip_src
-	// If no use the _agentAddressPublic as ip_src
-	if (homeAgent) iph->ip_src = _agentAddressPublic.in_addr();
-	if (!homeAgent) iph->ip_src = _agentAddressPrivate.in_addr();
+	iph->ip_src = _agentAddressPublic.in_addr();
+	if (sameNetwork(_agentAddressPrivate, dstAddress))
+		iph->ip_src = _agentAddressPrivate.in_addr();
+
 	iph->ip_sum = 0;
 	packet->set_dst_ip_anno(IPAddress(iph->ip_dst));
 
@@ -340,10 +338,11 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
 		if (data.homeAddress == it->homeAddress){ // MN has an active binding
 			isPresent = true;
-			if (data.careOfAddress == it->careOfAddress && data.lifetime == 0){
+			if (data.lifetime == 0) {
 				// If MN deregisters a specific binding with lifetime 0
 				// MN is back home
-				if (valid) _mobilityBindings.erase(it);
+				if (valid) 
+					_mobilityBindings.erase(it);
 				return IPAddress(data.homeAddress);
 			} else {
 				// MN sends a new valid request for an existing binding

@@ -107,9 +107,6 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
 	request->careOfAddress = coa.addr();
-	if (coa == _homeAgent) request->careOfAddress = _currentCoa.addr();
-	if (coa == IPAddress()) request->careOfAddress = _currentCoa.addr();
-	_currentCoa = IPAddress(request->careOfAddress);
 	request->identification = (uint64_t) generateRandomNumber(0, 4294967294);
 	//click_chatter("[RequestGenerator] Random identification value %d", request->identification);
 

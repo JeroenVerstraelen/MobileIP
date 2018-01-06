@@ -1,0 +1,35 @@
+-----------------------
+COMBINATIE IMPLEMENTATIE
+-----------------------
+
+
+**********
+Own:	HA, FA
+Ref:	MN
+**********
+
+Initieel: 
+	No issue.
+To_foreign:
+	Our FA uses ARP requests after first registration request (TODO: Check if same happens at ref)
+	After a while of running FA sends error 69: requested lifetime too long (no issue)
+To_home:
+	No issue.
+To foreign again:
+	No issue.
+To home again:
+	No issue.
+
+
+**********
+Own:	HA
+Ref:	FA, MN
+**********
+
+
+
+	
+
+ps aux | grep -i click
+sudo kill -9 id
+

@@ -43,9 +43,6 @@ class RequestGenerator : public Element {
 		// IP address of the mobile node's home agent
 		IPAddress _homeAgent;
 
-		// IP address of the mobile node's current care of address
-		IPAddress _currentCoa;
-
 		// Timer to keep the registration data up to date
 		Timer _timer;
 
