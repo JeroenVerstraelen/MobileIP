@@ -225,7 +225,7 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 	bool poorlyFormed = _poorlyFormed(reply);
 
 	// Check if port is corresponding with the port used in the request
-	// TODO delete entry here?? 
+	// TODO delete entry here??
 	VisitorEntry entry = _findVisitorEntry(reply);
 	if (entry.udpSourcePort != ntohs(udpHeader->uh_dport)){
 		LOGERROR("[RoutingElement] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), entry.udpSourcePort);
@@ -286,6 +286,10 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, u
 	iph->ip_tos = 0x00;
 	iph->ip_ttl = 64;
 	iph->ip_dst = dstAddress.in_addr();
+	// TODO fix this here
+	// Check if dstAddress is the same as the local network (_agentAddressPrivate) with sameNetwork()
+	// If yes use the agentAddressPrivate as ip_src
+	// If no use the _agentAddressPublic as ip_src
 	if (homeAgent) iph->ip_src = _agentAddressPublic.in_addr();
 	if (!homeAgent) iph->ip_src = _agentAddressPrivate.in_addr();
 	iph->ip_sum = 0;
