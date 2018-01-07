@@ -65,13 +65,13 @@ void Advertiser::run_timer(Timer* t){
 }
 
 void Advertiser::respondToSolicitation(){
-	// LOG("[Advertiser] Responding to solicitation");
+	LOG("[Advertiser] Responding to solicitation");
 	unsigned int delay = generateRandomNumber(0, MAX_RESPONSE_DELAY*1000);
 	_advertisementTimer.schedule_after_msec(delay);
 }
 
 void Advertiser::_generateAdvertisement() {
-	// LOG("[Advertiser] Sending ICMP router advertisement");
+	LOG("[Advertiser] Sending ICMP router advertisement");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize =

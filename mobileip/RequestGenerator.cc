@@ -45,7 +45,7 @@ void RequestGenerator::stopRequests(){
 void RequestGenerator::updateRegistration(uint64_t identification, uint16_t newLifetime){
 	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
 		if (it->identification == identification) { // TODO check if this way is correct
-			// LOG("Updating the pending registration for %d", identification);
+			LOG("Updating the pending registration for %d", identification);
 			uint16_t difference = it->originalLifetime - newLifetime;
 			it->remainingLifetime = it->remainingLifetime - difference;
 		}
@@ -53,10 +53,10 @@ void RequestGenerator::updateRegistration(uint64_t identification, uint16_t newL
 }
 
 bool RequestGenerator::hasActiveRegistration(IPAddress coa){
-	// LOG("[RequestGenerator] hasActiveRegistration");
+	LOG("[RequestGenerator] hasActiveRegistration");
 	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
 		if (IPAddress(it->careOfAddress) == coa){
-			// LOG("[RequestGenerator] Already an active registration for this coa");
+			LOG("[RequestGenerator] Already an active registration for this coa");
 			return true;
 		}
 	}
@@ -82,7 +82,7 @@ bool RequestGenerator::getValid() {
 
 void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime) {
 	valid = false;
-	// LOG("[RequestGenerator] Sending MobileIP request message");
+	LOG("[RequestGenerator] Sending MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationRequest);
@@ -147,7 +147,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	// Request is sent so keep remainingLifetime up to date
 	if (!_timer.scheduled()){ _timer.schedule_after_sec(1);}
 
-	// LOG("[RequestGenerator] Sent a request with id %d", request->identification);
+	LOG("[RequestGenerator] Sent a request with id %d", request->identification);
 
 	// Push the packet to the private network
 	output(0).push(packet);
@@ -155,7 +155,7 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 
 void RequestGenerator::_decreaseRemainingLifetime(){
 	for (int it=0; it<_pendingRegistrationsData.size(); it++){
-		LOG("[RequestGenerator] Registration expires in %d seconds", _pendingRegistrationsData.at(it).remainingLifetime);
+		click_chatter("[RequestGenerator] Registration expires in %d seconds", _pendingRegistrationsData.at(it).remainingLifetime);
 		// Don't decrement an infinite lifetime registration
 		if (_pendingRegistrationsData.at(it).originalLifetime == 0xffff) continue;
 		_pendingRegistrationsData.at(it).remainingLifetime--; // Decrement remainingLifetime
@@ -163,7 +163,7 @@ void RequestGenerator::_decreaseRemainingLifetime(){
 		// so send a new registration request (page 42 RFC 5944)
 		if (_pendingRegistrationsData.at(it).remainingLifetime <= 5){
 			RegistrationData data = _pendingRegistrationsData.at(it);
-			LOG("[RequestGenerator] Registration is almost expired <= 5 seconds, so renew it");
+			click_chatter("[RequestGenerator] Registration is almost expired <= 5 seconds, so renew it");
 			generateRequest(IPAddress(data.destinationIPAddress), IPAddress(data.careOfAddress), data.originalLifetime);
 		}
 	}
@@ -174,7 +174,7 @@ void RequestGenerator::_manageRegistrations(RegistrationData data){
 	Vector<RegistrationData> updatedRegistrations;
 	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
 		if (it->careOfAddress == data.careOfAddress && it->destinationIPAddress == data.destinationIPAddress){
-			// LOG("Registration is already present so remove the old one");
+			LOG("Registration is already present so remove the old one");
 			isPresent = true;
 			updatedRegistrations.push_back(data);
 			continue;

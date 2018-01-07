@@ -50,15 +50,15 @@ void RoutingElement::push(int port, Packet* p){
 		// Message from corresponding node
 		if (_mobilityBindings.empty()) {
 			// Mobile node at home
-			// LOG("[RoutingElement] Mobile Node is at home");
+			LOG("[RoutingElement] Mobile Node is at home");
 			// sending to local network.
 			output(0).push(p);
 		} else {
 			// Mobile node is away
-			// LOG("[RoutingElement] Mobile Node is away");
+			LOG("[RoutingElement] Mobile Node is away");
 			IPAddress dstAddress = iph->ip_dst;
 			IPAddress tunnelEndpoint = _findCareOfAddress(dstAddress);
-			// LOG("Tunnel endpoint %s", tunnelEndpoint.unparse().c_str());
+			LOG("Tunnel endpoint %s", tunnelEndpoint.unparse().c_str());
 			// IP in IP encapsulate and send it to the public network
 			_encapIPinIP(p, tunnelEndpoint);
 		}
@@ -106,7 +106,7 @@ void RoutingElement::push(int port, Packet* p){
 }
 
 void RoutingElement::_solicitationResponse(Packet* p) {
-	// LOG("[RoutingElement] Solicitation response received");
+	LOG("[RoutingElement] Solicitation response received");
 	click_ip* iph = (click_ip*) p->data();
 	ICMPSolicitation* solicitation = (ICMPSolicitation*) (p->data() + sizeof(click_ip));
  	const click_icmp *icmph = p->icmp_header();
@@ -139,13 +139,13 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
 	uint32_t dstAddressRequest = ntohl(IPAddress(iph->ip_dst).addr());
 	click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
-	// LOG("[RoutingElement] Received a registration request at agent side");
+	LOG("[RoutingElement] Received a registration request at agent side");
 	RegistrationRequest* request =
 	(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	// If the request is for another agent
 	if (request->homeAgent != _agentAddressPublic.addr()){
 		// Relay the registration request to port 1
-		// LOG("[RoutingElement] Received a request not for the agent itself, relaying it");
+		LOG("[RoutingElement] Received a request not for the agent itself, relaying it");
 		iph->ip_src = _agentAddressPublic.in_addr();
 		iph->ip_dst = IPAddress(request->homeAgent).in_addr();
 		iph->ip_len = htons(p->length());
@@ -182,7 +182,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 	// If the request is for the agent itself or 255.255.255.255
 	if (request->homeAgent == _agentAddressPublic.addr() || request->homeAgent == broadCast.addr()){
 		// Handle the registration request
-		// LOG("[RoutingElement] Received a request for the agent itself, don't relay");
+		LOG("[RoutingElement] Received a request for the agent itself, don't relay");
 		RegistrationRequest* request =
 		(RegistrationRequest*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 
@@ -206,7 +206,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 
 		// Push reply
 		if (sameNetwork(replyPacket->dst_ip_anno(), _agentAddressPrivate)){
-			// LOG("[RoutingElement] Pushing reply to local network");
+			LOG("[RoutingElement] Pushing reply to local network");
 			output(0).push(replyPacket);
 			return;
 		}
@@ -219,7 +219,7 @@ void RoutingElement::_registrationRequestResponse(Packet* p) {
 void RoutingElement::_registrationReplyRelay(Packet* p) {
 	click_ip* iph = (click_ip*) p->data();
 	click_udp* udpHeader = (click_udp*) (p->data() + sizeof(click_ip));
-	// LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
+	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
 	RegistrationReply* reply =
 	(RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	// Check if port is corresponding with the port used in the request
@@ -278,7 +278,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 }
 
 Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, uint16_t dstPort, RegistrationRequest* request, bool homeAgent){
-	// LOG("[RoutingElement] Reply to MobileIP request message");
+	LOG("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationReply);
@@ -341,7 +341,7 @@ IPAddress RoutingElement::_findCareOfAddress(IPAddress mobileNodeAddress){
 }
 
 IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool valid){
-	// LOG("[RoutingElement] Mobility bindings size = %d", _mobilityBindings.size());
+	LOG("[RoutingElement] Mobility bindings size = %d", _mobilityBindings.size());
 	bool isPresent = false;
 	for (Vector<MobilityBinding>::iterator it=_mobilityBindings.begin(); it != _mobilityBindings.end(); it++){
 		if (data.homeAddress == it->homeAddress){ // MN has an active binding
@@ -434,7 +434,7 @@ void RoutingElement::_decreaseLifetimeVisitors(){
 		}
 		it->remainingLifetime--;
 		if (it->remainingLifetime <= 0) {
-			//LOG("Registration was not renewed in time, so delete it from the visitors list");
+			LOG("Registration was not renewed in time, so delete it from the visitors list");
 			continue;
 		}
 		updatedVisitors.push_back(*it); // If lifetime is still valid (> 0) keep the binding

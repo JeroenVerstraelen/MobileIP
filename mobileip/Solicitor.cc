@@ -41,7 +41,7 @@ void Solicitor::run_timer(Timer* t){
 }
 
 void Solicitor::generateSolicitation() {
-	// LOG("[Solicitor] Sending ICMP router solicitation");
+	LOG("[Solicitor] Sending ICMP router solicitation");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4; // TODO check why necessary to add 4
 	int packetsize = sizeof(click_ip) + sizeof(ICMPSolicitation);

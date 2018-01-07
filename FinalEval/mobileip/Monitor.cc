@@ -51,7 +51,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 	const click_ip* iph = p->ip_header();
 	IPAddress srcIP = iph->ip_src;
 	IPAddress destIP = iph->ip_dst;
-	// LOG("[Monitor] Received an advertisement, length %d, ip src = %s", p->length(), srcIP.unparse().c_str());
+	LOG("[Monitor] Received an advertisement, length %d, ip src = %s", p->length(), srcIP.unparse().c_str());
 	p->pull(sizeof(click_ip));
 	ICMPAdvertisement* advertisement = (ICMPAdvertisement *) p->data();
 	if (advertisement->type == 9) {
@@ -82,7 +82,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 			8 + (numAddrs * addrEntrySize * 4));
 		}
 		else {
-			// LOG("[Monitor] Received a valid advertisement message");
+			LOG("[Monitor] Received a valid advertisement message");
 			MobilityAgentAdvertisementExtension* extension = (MobilityAgentAdvertisementExtension *) (p->data() + sizeof(ICMPAdvertisement));
 			uint16_t lifetime = ntohs(extension->registrationLifetime);
 			bool registerAgain = _updateSequenceNumber(ntohs(extension->sequenceNumber));
@@ -92,7 +92,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 			}
 			if (!sameNetwork(srcIP, _ipAddress)) {
 				// If the advertisement is not from the home agent
-				// LOG("[Monitor] Mobile node is NOT AT HOME");
+				LOG("[Monitor] Mobile node is NOT AT HOME");
 				if (extension->R == 1 && !_reqGenerator->hasActiveRegistration(IPAddress(extension->careOfAddress))) {
 					_reqGenerator->generateRequest(srcIP, IPAddress(extension->careOfAddress), lifetime);
 				}
@@ -101,7 +101,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 			}
 			if (!_atHome & sameNetwork(srcIP, _ipAddress)) {
 				// If the advertisement is from the home agent
-				// LOG("[Monitor] Mobile node is BACK AT HOME");
+				LOG("[Monitor] Mobile node is BACK AT HOME");
 				_atHome = true;
 
 				// Send request with lifetime 0
@@ -119,7 +119,7 @@ void Monitor::_handleRegistrationReply(Packet* p) {
 	RegistrationReply* reply = (RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	if (reply->type != 3)
 		return;
-	// LOG("[Monitor] Received MobileIP Reply at the Mobile Node");
+	LOG("[Monitor] Received MobileIP Reply at the Mobile Node");
 	if (ntohs(udpHeader->uh_dport) != portUDP){
 		LOGERROR("[Monitor] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), portUDP);
 		return;

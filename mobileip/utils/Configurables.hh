@@ -1,7 +1,7 @@
 // This file will contain some configurable values for the project
 #pragma once
 
-#define PRINTDEBUG true
+#define PRINTDEBUG false
 #define PRINTERROR true
 
 const IPAddress broadCast = IPAddress("255.255.255.255");
