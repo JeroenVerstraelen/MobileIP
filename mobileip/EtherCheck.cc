@@ -37,7 +37,7 @@ void EtherCheck::push(int, Packet* p){
 					etherDest[i] = eth_h->ether_shost[i];
 			}
 			// Ping reply.
-			if (icmp_h->icmp_type == 0 && !_monitorMN->isHome()) {
+			if (icmp_h->icmp_type == 0 && _monitorMN->getRequestGenerator()->getValid()) {
 				// Change the destination address of the reply
 				// Using the source from the latest advertisement.
 				WritablePacket* q = p->uniqueify();

@@ -29,6 +29,8 @@ class Monitor : public Element {
 		// Method to return if the MN is at home or not
 		bool isHome(){ return _atHome; }
 
+		RequestGenerator* getRequestGenerator(){ return _reqGenerator; }
+
 	private:
 		// Keep track of the sequence numbers of the advertisements
 		uint16_t _currentSequenceNumber;

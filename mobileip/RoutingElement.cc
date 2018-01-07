@@ -222,21 +222,31 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 	LOG("[RoutingElement] Received a reply message at agent side, forwarding to MN");
 	RegistrationReply* reply =
 	(RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
-	bool poorlyFormed = _poorlyFormed(reply);
-
 	// Check if port is corresponding with the port used in the request
 	// TODO delete entry here??
-	VisitorEntry entry = _findVisitorEntry(reply);
+	VisitorEntry entry;
+	bool poorlyFormed = !_findVisitorEntry(reply, entry);
+	if (poorlyFormed) {
+		LOGERROR("[RoutingElement] Received registration reply packet that is poorly formed");
+		// TODO Check if correct
+		reply->code = 71;
+		_deletePendingVisitor(reply);
+		iph->ip_src = _agentAddressPrivate.in_addr();
+		iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
+		iph->ip_len = htons(p->length());
+		p->set_dst_ip_anno(IPAddress(iph->ip_dst));
+		output(0).push(p);
+		return;
+	}
 	if (entry.udpSourcePort != ntohs(udpHeader->uh_dport)){
 		LOGERROR("[RoutingElement] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), entry.udpSourcePort);
 		p->kill();
 		return;
 	}
-	if (poorlyFormed) {
-		// TODO generate a new reply if the relayed reply is poorly formed
-	}
-	if (!poorlyFormed && (reply->code == 1 || reply->code == 0)) _updateVisitors(reply);
-	if (reply->code != 0 && reply->code != 1) _deletePendingVisitor(reply);
+	if (!poorlyFormed && (reply->code == 1 || reply->code == 0)) 
+		_updateVisitors(reply);
+	if (reply->code != 0 && reply->code != 1) 
+		_deletePendingVisitor(reply);
 	iph->ip_src = _agentAddressPrivate.in_addr();
 	iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
 	iph->ip_len = htons(p->length());
@@ -342,7 +352,7 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 				// If MN deregisters a specific binding with lifetime 0
 				// MN is back home
 				if (valid) 
-					_mobilityBindings.erase(it);
+					it = _mobilityBindings.erase(it);
 				return IPAddress(data.homeAddress);
 			} else {
 				// MN sends a new valid request for an existing binding
@@ -357,14 +367,14 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 	return IPAddress(data.careOfAddress);
 }
 
-void RoutingElement::_updateVisitors(RegistrationReply* reply){
+void RoutingElement::_updateVisitors(RegistrationReply* reply) {
 	// TODO delete the older entries if reply was valid and keep newest(page 53 RFC)
 	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
 		// Found corresponding entry
 		// MN source address is the same as the reply homeAddress
-		if (ntohl(reply->homeAddress) == it->sourceIPAddress){
+		if (ntohl(reply->homeAddress) == it->sourceIPAddress) {
 			if (ntohs(reply->lifetime) == 0) {
-				_visitors.erase(it);
+				it = _visitors.erase(it);
 				continue;
 			}
 			it->remainingLifetime = ntohs(reply->lifetime);
@@ -393,7 +403,7 @@ void RoutingElement::_deletePendingVisitor(RegistrationReply* reply){
 		// MN source address is the same as the reply homeAddress
 		// and identification field match
 		if (ntohl(reply->homeAddress) == it->sourceIPAddress && reply->identification == it->identification){
-			_visitors.erase(it);
+			it = _visitors.erase(it);
 			return;
 		}
 	}
@@ -466,21 +476,17 @@ uint8_t RoutingElement::_checkRequest(RegistrationRequest* request, bool homeAge
 	return 0;
 }
 
-// Returns true if reply is poorly formed
-bool RoutingElement::_poorlyFormed(RegistrationReply* reply){
-	// TODO implement this
-	return false;
-};
-
-VisitorEntry RoutingElement::_findVisitorEntry(RegistrationReply* reply){
+bool RoutingElement::_findVisitorEntry(RegistrationReply* reply, VisitorEntry& foundEntry){
 	for (Vector<VisitorEntry>::iterator it=_visitors.begin(); it != _visitors.end(); it++){
 		// Found corresponding entry
 		// MN source address is the same as the reply homeAddress
 		// and identification field match
 		if (ntohl(reply->homeAddress) == it->sourceIPAddress && reply->identification == it->identification){
-			return *it;
+			foundEntry = *it;
+			return true;
 		}
 	}
+	return false;
 }
 
 CLICK_ENDDECLS

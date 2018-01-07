@@ -25,7 +25,61 @@ To home again:
 Own:	HA
 Ref:	FA, MN
 **********
+Initieel: 
+	No issue.
+To_foreign:
+	No issue.
+To_home:
+	No issue.
+To foreign again:
+	No issue.
+To home again:
+	No issue.
 
+**********
+Own:	FA
+Ref:	HA, MN
+**********
+Initieel: 
+	No issue.
+To_foreign:
+	No issue.
+To_home:
+	Multiple deletes in visitor list. No issue.
+To foreign again:
+	No issue.
+To home again:
+	No issue.
+
+**********
+Own:	MN
+Ref:	HA, FA
+**********
+Initieel: 
+	No issue.
+To_foreign:
+	No issue.
+To_home:
+	No issue.
+To foreign again:
+	No issue.
+To home again:
+	No issue.
+
+**********
+Own:	FA, MN
+Ref:	HA
+**********
+Initieel: 
+	No issue.
+To_foreign:
+	No issue.
+To_home:
+	No issue.
+To foreign again:
+	No issue.
+To home again:
+	No issue.
 
 
 	

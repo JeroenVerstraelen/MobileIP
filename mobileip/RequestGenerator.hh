@@ -36,6 +36,11 @@ class RequestGenerator : public Element {
 		// Returns true if the request generator has an pending registration data for this IPAddress
 		bool hasActiveRegistration(IPAddress);
 
+		uint64_t getActiveRegistrationID(IPAddress);
+
+		void setValid(bool);
+		bool getValid();
+
 	private:
 		// Source address of the mobile node
     		IPAddress _srcAddress;
@@ -45,6 +50,8 @@ class RequestGenerator : public Element {
 
 		// Timer to keep the registration data up to date
 		Timer _timer;
+
+		bool valid = false;
 
 		// Vector of datastructs with information about the pending registrations
 		Vector<RegistrationData> _pendingRegistrationsData;

@@ -102,12 +102,8 @@ class RoutingElement : public Element {
 		// The boolean parameter indicates if this agent is working like a HA or FA
 		uint8_t _checkRequest(RegistrationRequest*, bool);
 
-		// Checks if reply is valid at the FA side
-		// If poorly formed, generate and send reply with code 71
-		bool _poorlyFormed(RegistrationReply*);
-
 		// Find corresponding entry in visitors list according to incoming reply
-		VisitorEntry _findVisitorEntry(RegistrationReply*);
+		bool _findVisitorEntry(RegistrationReply*, VisitorEntry& foundEntry);
 
 };
 

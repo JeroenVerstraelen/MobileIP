@@ -11,7 +11,18 @@ write home_agent/adv.invalid_checksum true
 Wireshark laat weten dat checksums invalid zijn
 Intieel (op home network): 	Niets verschillend op console
 To foreign: 			Niets verschillend op console
-To home:			OOK niets!
+To home:			Ook niets!
+
+
+Code
+Sending (Doesn't work)
+
+
+write home_agent/mobility.
+
+
+
+
 
 write home_agent/mobility.invalid_port true
 ======================================

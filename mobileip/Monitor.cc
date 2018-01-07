@@ -103,7 +103,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 				// If the advertisement is from the home agent
 				LOG("[Monitor] Mobile node is BACK AT HOME");
 				_atHome = true;
-
+				
 				// Send request with lifetime 0
 				_reqGenerator->generateRequest(srcIP, _ipAddress, 0);
 			}
@@ -124,11 +124,17 @@ void Monitor::_handleRegistrationReply(Packet* p) {
 		LOGERROR("[Monitor] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), portUDP);
 		return;
 	}
+	uint64_t pendingRegId = _reqGenerator->getActiveRegistrationID(ipHeader->ip_src); 
+	if (pendingRegId != reply->identification) {
+		LOGERROR("[Monitor] Received registration reply packet with the wrong id.");
+		return;
+	}
 	if (reply->code == 0 || reply->code == 1){ // Registration was accepted
 		if (ntohs(reply->lifetime) == 0){
 			// Reply with lifetime 0 => stop the requests
 			_reqGenerator->stopRequests();
 		} else {
+			_reqGenerator->setValid(true);
 			// If the reply was valid and lifetime is not 0
 			// Update the responding registration in RequestGenerator in order to resend
 			// a registration request when its lifetime is almost expired at the home agent

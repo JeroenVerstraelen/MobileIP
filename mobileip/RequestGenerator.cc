@@ -63,7 +63,25 @@ bool RequestGenerator::hasActiveRegistration(IPAddress coa){
 	return false;
 }
 
-void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime){
+uint64_t RequestGenerator::getActiveRegistrationID(IPAddress dest) {
+	for (Vector<RegistrationData>::iterator it=_pendingRegistrationsData.begin(); it != _pendingRegistrationsData.end(); it++){
+		if (IPAddress(it->destinationIPAddress) == dest){
+			return it->identification;
+		}
+	}
+	return 0;
+}
+
+void RequestGenerator::setValid(bool newValid) {
+	valid = newValid;
+}
+
+bool RequestGenerator::getValid() {
+	return valid;
+}
+
+void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime) {
+	valid = false;
 	click_chatter("[RequestGenerator] Sending MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
