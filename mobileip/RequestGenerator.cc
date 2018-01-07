@@ -82,7 +82,7 @@ bool RequestGenerator::getValid() {
 
 void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, uint16_t lifetime) {
 	valid = false;
-	click_chatter("[RequestGenerator] Sending MobileIP request message");
+	LOG("[RequestGenerator] Sending MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationRequest);
@@ -125,8 +125,9 @@ void RequestGenerator::generateRequest(IPAddress agentAddress, IPAddress coa, ui
 	request->homeAddress = _srcAddress.addr();
 	request->homeAgent = _homeAgent.addr();
 	request->careOfAddress = coa.addr();
+	if (coa == IPAddress()) request->careOfAddress = _currentCoa.addr();
+	_currentCoa = IPAddress(request->careOfAddress);
 	request->identification = (uint64_t) generateRandomNumber(0, 4294967294);
-	//click_chatter("[RequestGenerator] Random identification value %d", request->identification);
 
 	// Set the UDP header checksum based on the initialized values
 	unsigned csum = click_in_cksum((unsigned char *)udpHeader, sizeof(click_udp) + sizeof(RegistrationRequest));

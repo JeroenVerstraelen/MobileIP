@@ -117,7 +117,7 @@ void RoutingElement::_solicitationResponse(Packet* p) {
 		 	 "sent with code %d but it should be 0",
 			 solicitation->code);
 	}
-	else if (icmp_len % 8 != 0){
+	else if (icmp_len < 8){
 		LOGERROR("[RoutingElement] Solicitation message is "
 			 "sent with length %d which is not 8 or more octets",
 			 ntohs(iph->ip_len) - sizeof(click_ip));
@@ -223,12 +223,10 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 	RegistrationReply* reply =
 	(RegistrationReply*) (p->data() + sizeof(click_ip) + sizeof(click_udp));
 	// Check if port is corresponding with the port used in the request
-	// TODO delete entry here??
 	VisitorEntry entry;
 	bool poorlyFormed = !_findVisitorEntry(reply, entry);
 	if (poorlyFormed) {
 		LOGERROR("[RoutingElement] Received registration reply packet that is poorly formed");
-		// TODO Check if correct
 		reply->code = 71;
 		_deletePendingVisitor(reply);
 		iph->ip_src = _agentAddressPrivate.in_addr();
@@ -240,12 +238,13 @@ void RoutingElement::_registrationReplyRelay(Packet* p) {
 	}
 	if (entry.udpSourcePort != ntohs(udpHeader->uh_dport)){
 		LOGERROR("[RoutingElement] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), entry.udpSourcePort);
+		_deletePendingVisitor(reply);
 		p->kill();
 		return;
 	}
-	if (!poorlyFormed && (reply->code == 1 || reply->code == 0)) 
+	if (!poorlyFormed && (reply->code == 1 || reply->code == 0))
 		_updateVisitors(reply);
-	if (reply->code != 0 && reply->code != 1) 
+	if (reply->code != 0 && reply->code != 1)
 		_deletePendingVisitor(reply);
 	iph->ip_src = _agentAddressPrivate.in_addr();
 	iph->ip_dst = IPAddress(reply->homeAddress).in_addr();
@@ -269,7 +268,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 	outerIP->ip_off = 0;
 	outerIP->ip_tos = innerIP->ip_tos;
 	outerIP->ip_len = htons(newPacket->length());
-	outerIP->ip_ttl = 64; // TODO change this possibly
+	outerIP->ip_ttl = 64;
 	outerIP->ip_src = _agentAddressPublic.in_addr();
 	outerIP->ip_dst = careOfAddress.in_addr();
 	outerIP->ip_sum = click_in_cksum((unsigned char *)outerIP, sizeof(click_ip));
@@ -279,7 +278,7 @@ void RoutingElement::_encapIPinIP(Packet* p, IPAddress careOfAddress){
 }
 
 Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, uint16_t dstPort, RegistrationRequest* request, bool homeAgent){
-	LOG("[RoutingElement] Reply to MobileIP request message");
+	// LOG("[RoutingElement] Reply to MobileIP request message");
 	int tailroom = 0;
 	int headroom = sizeof(click_ether) + 4;
 	int packetsize = sizeof(click_ip) + sizeof(click_udp) + sizeof(RegistrationReply);
@@ -320,7 +319,6 @@ Packet* RoutingElement::_generateReply(IPAddress dstAddress, uint16_t srcPort, u
 	if (!homeAgent && (reply->code == 69)) reply->lifetime = htons(maxLifetimeForeignAgent);
 	reply->homeAddress = IPAddress(request->homeAddress).addr();
 	reply->homeAgent = IPAddress(request->homeAgent).addr();
-	LOG("[RoutingElement] Received a request with id %d and sending a reply with it");
 	reply->identification = request->identification;
 
 	// Set the UDP header checksum based on the initialized values
@@ -351,7 +349,7 @@ IPAddress RoutingElement::_updateMobilityBindings(MobilityBinding data, bool val
 			if (data.lifetime == 0) {
 				// If MN deregisters a specific binding with lifetime 0
 				// MN is back home
-				if (valid) 
+				if (valid)
 					it = _mobilityBindings.erase(it);
 				return IPAddress(data.homeAddress);
 			} else {
@@ -436,7 +434,7 @@ void RoutingElement::_decreaseLifetimeVisitors(){
 		}
 		it->remainingLifetime--;
 		if (it->remainingLifetime <= 0) {
-			LOG("Registration was not renewed in time, so delete it from the visitors list");
+			//LOG("Registration was not renewed in time, so delete it from the visitors list");
 			continue;
 		}
 		updatedVisitors.push_back(*it); // If lifetime is still valid (> 0) keep the binding

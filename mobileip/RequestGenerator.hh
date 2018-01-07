@@ -45,6 +45,9 @@ class RequestGenerator : public Element {
 		// Source address of the mobile node
     		IPAddress _srcAddress;
 
+		// IP address of current coa
+		IPAddress _currentCoa;
+
 		// IP address of the mobile node's home agent
 		IPAddress _homeAgent;
 

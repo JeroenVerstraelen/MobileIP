@@ -103,7 +103,7 @@ void Monitor::_handleAdvertisement(Packet* p) {
 				// If the advertisement is from the home agent
 				LOG("[Monitor] Mobile node is BACK AT HOME");
 				_atHome = true;
-				
+
 				// Send request with lifetime 0
 				_reqGenerator->generateRequest(srcIP, _ipAddress, 0);
 			}
@@ -124,7 +124,7 @@ void Monitor::_handleRegistrationReply(Packet* p) {
 		LOGERROR("[Monitor] Received registration reply packet on UDP port %d, but expected port %d", ntohs(udpHeader->uh_dport), portUDP);
 		return;
 	}
-	uint64_t pendingRegId = _reqGenerator->getActiveRegistrationID(ipHeader->ip_src); 
+	uint64_t pendingRegId = _reqGenerator->getActiveRegistrationID(ipHeader->ip_src);
 	if (pendingRegId != reply->identification) {
 		LOGERROR("[Monitor] Received registration reply packet with the wrong id.");
 		return;
