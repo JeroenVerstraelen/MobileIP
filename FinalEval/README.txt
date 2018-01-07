@@ -14,6 +14,14 @@ Navigate to the click/scripts folder and execute the following commands:
   1. sudo ./setup.sh (only for the initial setup)
   2. cd ../; make elemlist; make -j2; cd scripts/; sudo ./start_click.sh
 
+The start_click script contains the following commands:
+	../userlevel/click glue.click -p 10000 & 	# Run the glue that connects the elements
+	../userlevel/click mn.click -p 10001 &		# Run the MN 
+	../userlevel/click ha.click -p 10002 &		# Run the HA
+	../userlevel/click fa.click -p 10003 &		# Run the FA
+	../userlevel/click cn.click -p 10004		# Run the CN (Corresponding node)
+
+
 ##  Interaction with the reference implementation 
 It is possible to combine our elements (HA,FA or MN) with those of the reference implementation.
 This combination allows us to test our timing and error handling. 
