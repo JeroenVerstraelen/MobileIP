@@ -1,9 +1,0 @@
-Finale inzending van Mobile IP:
-    -) Visitor list (nog wat verder finetunen)
-    -) Check alle TODO's in de code 
-    -) ZEKER EENS NAGAAN OP HARDCODED ADDRESSEN
-    -) Nakijken aan de hand van de referentie implementatie (BELANGRIJK, zeker eens alle handlers testen van de VM)
-    -) Run zero checksum om registrationReply UDP checksum te bekijken in FA en MN (apart) 
-
-
-
