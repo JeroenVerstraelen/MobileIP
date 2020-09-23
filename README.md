@@ -1,7 +1,7 @@
 # MobileIP
 Implementation of annotated RFC 5944 in the Click Modular Router environment.
-For more and concise information, you can look in the varia or misc folder which contains summaries for all the necessary RFC's.
-The mobileip folder contains the elements we used and the library folder contains the Click scripts.
+For more and concise information, you can look in the resources folder which contains summaries for all the necessary RFC's.
+The src folder contains the elements we used and the src/library folder contains the Click scripts.
 
 ## How to run our code
 The assignment includes a Virtual Machine on which we can test our code.
