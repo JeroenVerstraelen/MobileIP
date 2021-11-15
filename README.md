@@ -1,6 +1,6 @@
 # Project
 Implementation of annotated RFC 5944 in the Click Modular Router environment.
-For more and concise information, you can look in the resources folder which contains summaries for all the necessary RFC's.
+For more information you can look in the resources folder which contains summaries for all the necessary RFC's.
 The src folder contains the elements we used and the src/library folder contains the Click scripts.
 
 # MobileIP
